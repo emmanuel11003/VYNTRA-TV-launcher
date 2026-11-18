@@ -1,7 +1,10 @@
 .gradle/
+**/.gradle/
 build/
+**/build/
 app/build/
 local.properties
+**/local.properties
 *.apk
 *.aab
 *.ap_

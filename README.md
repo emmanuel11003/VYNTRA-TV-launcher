@@ -18,6 +18,10 @@ A standalone, 100% offline Android TV / Google TV launcher (`minSdk 26`, `target
 |---|---|
 | ![Screensaver](docs/screenshots/screensaver.png) | ![App Card Long-Press Menu](docs/screenshots/tile-menu.png) |
 
+| Custom Wallpaper Changer with Phone (Wallpaper Sync) | |
+|---|---|
+| ![Wallpaper Sync Phone Uploader](docs/screenshots/wallpaper-sync.png) | Scan the QR code or open the local Wi-Fi URL from your phone browser to upload **Home** & **Screensaver** wallpapers with a 4-digit pairing PIN — zero ADB needed. |
+
 ---
 
 ## Complete Feature Breakdown
@@ -54,12 +58,16 @@ A standalone, 100% offline Android TV / Google TV launcher (`minSdk 26`, `target
 - Displays notification icon, app name, relative timestamp, title, and body text in a 290dp translucent side panel matching Quick Settings.
 - **Remote Controls**: `OK` launches the notification's target app/intent; **Long-Press `OK`** dismisses an individual notification; **`Clear all`** clears the cached list.
 
-### 4. Standalone Wallpaper Manager (`LauncherSettingsActivity`, `WallpaperPlayer`)
+### 4. Standalone Wallpaper Manager & Phone Wi-Fi Wallpaper Changer (`LauncherSettingsActivity`, `WallpaperPlayer`, `WallpaperBridgeProvider`, `addons/wallpaper-sync`)
 - Ships with a built-in default true-color Home & Screensaver wallpaper (`assets/default_wallpaper.jpg`, enabled by default via `wallpaper=true` and `wallpaper_true_color=true` in `res/values/config.xml`).
-- Independent **Home Wallpaper** and **Screensaver Wallpaper** pickers inside `LauncherSettingsActivity`:
-  - Lists the built-in default wallpaper alongside theme wallpapers, device storage (`Pictures`, `Download`, `Wallpapers`), and custom imported images.
-  - Imports any image via `Intent.ACTION_GET_CONTENT` (up to `15 MB`, stored locally in `Config.dir(ctx)`).
+- **On-TV Pickers (`LauncherSettingsActivity`)**:
+  - Independent **Home Wallpaper** and **Screensaver Wallpaper** pickers listing the built-in default wallpaper alongside theme wallpapers, device storage (`Pictures`, `Download`, `Wallpapers`), and local `Intent.ACTION_GET_CONTENT` imports (up to `15 MB` stored in `Config.dir(ctx)`).
   - Supports wallpaper rotation (`WallpaperRotation`), dimming (`wallpaper_dim`), mood filtering (`WallpaperMood`), and `RGB_565` / `ARGB_8888` decoding.
+- **Custom Wallpaper Changer with Phone (`addons/wallpaper-sync`, `com.emmanuel.wallpapersync`)**:
+  - Optional `38,840`-byte companion add-on app (also surfaces as a `"Wi-Fi wallpaper"` Module Card on Home) that lets you push custom wallpapers from **any phone or laptop browser over local Wi-Fi — no ADB required** once installed.
+  - Starts a pure-Java foreground HTTP server (`WallpaperHttpServer` / `SyncServerService`) on port `8765`, renders a scannable **QR code** (`Qr`, `QrView`) on the TV screen with the LAN URL (`http://<tv-ip>:8765`), and guards uploads with a **4-digit Pairing PIN** (`New PIN` rotation supported on TV).
+  - Serves an embedded responsive mobile Web UI (`WebUi`) where your phone can pick **JPG, PNG, or WebP** images (large phone photos > 10 MB are automatically scaled to 4K JPEG client-side in the browser) and apply them as **Set Home**, **Set Screensaver**, **Set Both**, or **Reset Home / Reset Screensaver**.
+  - Keeps the core launcher 100% offline: `Wallpaper Sync` validates magic headers (`isSupportedImageHeader`, max `15 MB`) and transfers bytes over local signature-protected `ContentResolver` IPC (`WallpaperBridgeProvider`, `content://com.emmanuel.tvhome.wallpaper_bridge`, broadcast `ACTION_WALLPAPER_UPDATED`).
 
 ### 5. Interactive Remote Button Mapper & Haier Physical Remote Suite
 - **Button Mapper (`ButtonMapper`)** inside **Launcher Settings**:
@@ -130,7 +138,7 @@ A standalone, 100% offline Android TV / Google TV launcher (`minSdk 26`, `target
   - `WRITE_SECURE_SETTINGS` (granted via ADB by installer scripts so `ServiceRepair` restores key helpers)
   - `PACKAGE_USAGE_STATS` (app-op granted via ADB for `LastOpened` timestamps)
   - `BLUETOOTH_CONNECT`, `yandex.tv.permission.ACCESS_TV_SOURCE` (TV input/Bluetooth integration)
-  - Signature-protected `${applicationId}.permission.WALLPAPER_SYNC` (local-only)
+  - Signature-protected `${applicationId}.permission.WALLPAPER_SYNC` (local IPC bridge for `addons/wallpaper-sync`; the optional add-on APK holds local LAN `INTERNET`, `ACCESS_NETWORK_STATE`, `ACCESS_WIFI_STATE`, `FOREGROUND_SERVICE_DATA_SYNC`, and `com.emmanuel.tvhome.permission.WALLPAPER_SYNC` — nothing ever leaves your Wi-Fi network)
 
 ---
 
@@ -157,6 +165,16 @@ Release APK output: `app\build\outputs\apk\release\tvhome-v7.0-release.apk`
 
 Both installer scripts build the release APK, install it over ADB, set `com.emmanuel.tvhome/.MainActivity` as the default Home activity, and enable `InputKeyService`, `HomeKeyService`, `WRITE_SECURE_SETTINGS`, `GET_USAGE_STATS`, and `GuardRevival` by default.
 
+### Build & Install Phone Wallpaper Changer Add-on (`Wallpaper Sync`)
+
+Both APKs must share the same signing certificate so `com.emmanuel.tvhome.permission.WALLPAPER_SYNC` (`signature` protection) is granted automatically:
+
+```powershell
+cd addons\wallpaper-sync
+.\gradlew.bat --no-daemon testReleaseUnitTest lintRelease assembleRelease
+adb install -r app\build\outputs\apk\release\app-release.apk
+```
+
 ---
 
 ## Project Layout
@@ -170,7 +188,9 @@ VYNTRA-TV-launcher/
 │   └── src/
 │       ├── main/                 # com.emmanuel.tvhome Java sources, layouts, drawables, config.xml
 │       └── test/                 # 48 JVM unit test suites (343 tests)
-├── docs/screenshots/             # Live screenshots (home, quick-settings, notifications, settings, screensaver)
+├── addons/
+│   └── wallpaper-sync/           # Optional Wi-Fi Phone Wallpaper Changer add-on (com.emmanuel.wallpapersync)
+├── docs/screenshots/             # Live screenshots (home, quick-settings, notifications, settings, screensaver, tile-menu, wallpaper-sync)
 ├── build-and-install.ps1         # Windows ADB installer (defaults helpers & permissions ON)
 ├── build-and-install.sh          # POSIX ADB installer (defaults helpers & permissions ON)
 ├── FONT-LICENSE-OFL.txt          # Outfit font license
