@@ -232,9 +232,17 @@ final class ClockScene {
                     if (single.isFile() && single.length() > 0 && !availableWallpapers.contains(single)) {
                         availableWallpapers.add(single);
                     }
+                    File def = new File(root, Config.DEFAULT_WALLPAPER_NAME);
+                    if (def.isFile() && def.length() > 0 && !availableWallpapers.contains(def)) {
+                        availableWallpapers.add(def);
+                    }
                     for (File img : WallpaperRotation.images(new File(root, "wallpapers"))) {
                         if (!availableWallpapers.contains(img)) availableWallpapers.add(img);
                     }
+                }
+                if (availableWallpapers.isEmpty()) {
+                    File def = Config.defaultWallpaperFile(appCtx);
+                    if (def != null) availableWallpapers.add(def);
                 }
             }
             final List<File> resolvedWallpapers = availableWallpapers;

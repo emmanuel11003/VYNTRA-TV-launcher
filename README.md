@@ -55,8 +55,9 @@ A standalone, 100% offline Android TV / Google TV launcher (`minSdk 26`, `target
 - **Remote Controls**: `OK` launches the notification's target app/intent; **Long-Press `OK`** dismisses an individual notification; **`Clear all`** clears the cached list.
 
 ### 4. Standalone Wallpaper Manager (`LauncherSettingsActivity`, `WallpaperPlayer`)
+- Ships with a built-in default true-color Home & Screensaver wallpaper (`assets/default_wallpaper.jpg`, enabled by default via `wallpaper=true` and `wallpaper_true_color=true` in `res/values/config.xml`).
 - Independent **Home Wallpaper** and **Screensaver Wallpaper** pickers inside `LauncherSettingsActivity`:
-  - Scans theme wallpapers, device storage (`Pictures`, `Download`, `Wallpapers`), and custom imported images.
+  - Lists the built-in default wallpaper alongside theme wallpapers, device storage (`Pictures`, `Download`, `Wallpapers`), and custom imported images.
   - Imports any image via `Intent.ACTION_GET_CONTENT` (up to `15 MB`, stored locally in `Config.dir(ctx)`).
   - Supports wallpaper rotation (`WallpaperRotation`), dimming (`wallpaper_dim`), mood filtering (`WallpaperMood`), and `RGB_565` / `ARGB_8888` decoding.
 
@@ -84,7 +85,7 @@ A standalone, 100% offline Android TV / Google TV launcher (`minSdk 26`, `target
 - **Non-Destructive Theme Overlays**: `Config.mergeIntArray(...)` and `Config.mergeAppKeys(...)` merge `config.json` overlays with built-in `config.xml` remote mappings instead of overwriting them.
 
 ### 7. Month Calendar & Clock Screensaver (`ClockActivity`, `ClockDream`, `ClockScene`)
-- Dual digital clock + Month Calendar grid (`Calendar` or `Clock` style) with `Wallpaper`, `Glow`, or `Black` background, 60-second OLED burn-in drift, configurable idle timeout (`home_idle_clock_minutes`), and system `DreamService` (`ClockDream`) support.
+- Dual digital clock + Month Calendar grid (`Calendar` or `Clock` style) with `Wallpaper` (default, powered by the bundled `default_wallpaper.jpg` or user wallpaper), `Glow`, or `Black` background, 60-second OLED burn-in drift, configurable idle timeout (`home_idle_clock_minutes`), and system `DreamService` (`ClockDream`) support.
 
 ---
 
@@ -107,7 +108,7 @@ A standalone, 100% offline Android TV / Google TV launcher (`minSdk 26`, `target
 
 | Metric | Before Optimization | After Optimization |
 |---|---|---|
-| Release APK Size | `587,057` bytes | **`578,865` bytes** (`10,959` B under `589,824` B gate) |
+| Release APK Size | `587,057` bytes | **`685,435` bytes** (`35,461` B under `720,896` B gate with bundled `default_wallpaper.jpg`; `578,865` B code-only) |
 | Unit Tests & Lint | `48` suites / `343` tests | **`48` suites / `343` tests passed, `0` lint errors** |
 | Active Navigation Frames (`gfxinfo`) | `48` frames | **`90` frames** |
 | Janky Frames / Legacy Jank | `37 (77.08%)` / `47 (97.92%)` | **`1 (1.11%)` / `0 (0.00%)`** |

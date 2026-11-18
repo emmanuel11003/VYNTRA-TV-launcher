@@ -398,9 +398,11 @@
     <!-- Names under every tile, not only the focused one: unfocused names stay dimmed, the focused one is full white.
          With dock_row the band grows down to hold the dock's names too. -->
     <bool name="always_show_names">false</bool>
+    <!-- Default home & screensaver wallpaper bundled in assets/default_wallpaper.jpg. -->
+    <bool name="wallpaper">true</bool>
     <!-- Wallpapers decode as RGB_565 (2 bytes a pixel, 4 MB at 1080p), which bands dark gradients such as a night
          sky, most of all under wallpaper_dim. true decodes them in 32-bit colour: 8 MB, for TVs with 2 GB or more. -->
-    <bool name="wallpaper_true_color">false</bool>
+    <bool name="wallpaper_true_color">true</bool>
     <!-- Rotating wallpapers: show each picture's name under the top-right buttons, from a captions.txt next to the
          pictures in wallpapers/ ("01-dusk.jpg<TAB>Dusk over the peaks", one per line). A picture without a line
          shows no name. Can also be set with "wallpaper_captions": true in a theme's config.json. -->
@@ -529,7 +531,7 @@
          app's softened artwork (0 to 100, 50 as before; 0 leaves the wallpaper uncovered). Lower values let a
          theme's wallpaper show through. A theme can set "cinematic_scrim" and "cinematic_art". -->
     <integer name="cinematic_scrim">0</integer>
-    <integer name="cinematic_art">50</integer>
+    <integer name="cinematic_art">0</integer>
 
     <!-- The glow behind the dock in the focused app's colour (red for YouTube, blue for Prime Video). false keeps
          only background_color or the wallpaper behind everything. Can also be set with "ambient_glow": false in a
@@ -558,7 +560,7 @@
     <bool name="back_opens_clock">false</bool>
     <!-- The clock screensaver (Home idle clock and the system screensaver) over Home's wallpaper instead of black with
          a coloured glow. The clock still moves every minute. Can also be set with "clock_wallpaper" in a theme. -->
-    <bool name="clock_wallpaper">false</bool>
+    <bool name="clock_wallpaper">true</bool>
     <!-- How dark that wallpaper is behind the clock, 0 to 90 %. Can also be set with "clock_wallpaper_dim". -->
     <integer name="clock_wallpaper_dim">50</integer>
     <!-- The clock screensaver's slow coloured glow behind the clock. false leaves the clock and date alone on plain black

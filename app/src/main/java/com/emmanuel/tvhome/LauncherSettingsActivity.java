@@ -430,6 +430,8 @@ public final class LauncherSettingsActivity extends Activity {
         scanImages(new File(extRoot, "Download"), images);
         scanImages(new File(extRoot, "Wallpapers"), images);
         if (dir != null) scanImages(new File(dir, "custom"), images);
+        File bundled = Config.defaultWallpaperFile(this);
+        if (bundled != null && bundled.isFile() && !images.contains(bundled)) images.add(bundled);
         return images;
     }
 

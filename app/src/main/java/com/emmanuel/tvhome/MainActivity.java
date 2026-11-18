@@ -547,10 +547,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // the theme's background, so launch looks the same.
         getWindow().setBackgroundDrawable(null);
         wallpaperPlayer = new WallpaperPlayer(this, root, cfg);
-        boolean customWallpaper = cfg.wallpaperEnabled && !cfg.wallpapers.isEmpty()
-                && getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE).contains(Config.WALLPAPER_CHOICE_KEY);
+        boolean hasWallpaper = cfg.wallpaperEnabled && !cfg.wallpapers.isEmpty();
         sky = findViewById(R.id.sky);
-        sky.setIntensity(customWallpaper ? 0 : cfg.skyIntensity);
+        sky.setIntensity(hasWallpaper ? 0 : cfg.skyIntensity);
         glass = findViewById(R.id.glass);
         glass.setStyle(cfg.glassStyle);
         if (festive) glass.setAccent(festival.accentColor());
@@ -558,9 +557,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // The glow is one bitmap, so its alpha can be applied while drawing it. Otherwise every frame of
         // a fade renders it into a full-screen offscreen buffer first.
         ambient.forceHasOverlappingRendering(false);
-        ambientGlow = cfg.ambientGlow && !customWallpaper;
+        ambientGlow = cfg.ambientGlow && !hasWallpaper;
         glowSnap = cfg.glowSnap;
-        appGlow = cfg.appGlow && !customWallpaper;
+        appGlow = cfg.appGlow && !hasWallpaper;
         if (!ambientGlow) ambient.setVisibility(View.GONE);
         heroName = findViewById(R.id.heroName);
         hero = findViewById(R.id.hero);
@@ -573,8 +572,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         cinematic = cfg.cinematicHome;
         glowStyle = cfg.glowStyle;
         heroDotsShown = cfg.cinematicDots;
-        cinematicWhiteFocus = cfg.cinematicWhiteFocus || customWallpaper;
-        heroArtAlpha = customWallpaper ? 0f : (cfg.cinematicArt / 100f) * 0.42f;
+        cinematicWhiteFocus = cfg.cinematicWhiteFocus || hasWallpaper;
+        heroArtAlpha = hasWallpaper ? 0f : (cfg.cinematicArt / 100f) * 0.42f;
         if (cinematic) setUpCinematicShelf(cfg.cinematicScrim);
         // dock_title false: the name above the dock (and the cinematic lines under it) never shows; the glow
         // still follows the dock.

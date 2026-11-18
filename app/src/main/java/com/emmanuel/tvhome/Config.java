@@ -39,6 +39,7 @@ final class Config {
     private static final String TAG = "TvHome.Config";
     static final String FILE_NAME = "config.json";
     static final String WALLPAPER_NAME = "wallpaper.jpg";
+    static final String DEFAULT_WALLPAPER_NAME = "default_wallpaper.jpg";
     static final String SETTINGS_NAME = "launcher_settings";
     static final String ROWS_BELOW_DOCK_KEY = "rows_below_dock";
     static final String WALLPAPER_CHOICE_KEY = "wallpaper_choice";
@@ -725,9 +726,14 @@ final class Config {
                 internal.delete();
             }
         }
-        // A theme can also switch the wallpaper off while the file is still there.
-        boolean wallpaperEnabled = json != null && bool(json, "wallpaper", false);
-        if (!wallpaperEnabled) wallpaper = null;
+        // Built-in default wallpaper can be overridden by "wallpaper" in config.json.
+        boolean wallpaperEnabled = res.getBoolean(R.bool.wallpaper);
+        if (json != null) wallpaperEnabled = bool(json, "wallpaper", wallpaperEnabled);
+        if (wallpaperEnabled && wallpaper == null && ctx != null) {
+            wallpaper = defaultWallpaperFile(ctx);
+        } else if (!wallpaperEnabled) {
+            wallpaper = null;
+        }
         int rotationMinutes = json == null ? 0 : integer(json, "wallpaper_rotation_minutes", 0, 0, 1440);
         int wallpaperDim = json == null ? 0 : integer(json, "wallpaper_dim", 0, 0, 90);
         int defaultDockOpacity = 30;
@@ -1057,6 +1063,35 @@ final class Config {
             }
         }
         return out;
+    }
+
+    /** Extracts the bundled default wallpaper into app-private files if missing or changed. */
+    static File defaultWallpaperFile(Context ctx) {
+        if (ctx == null) return null;
+        File dir = ctx.getFilesDir();
+        if (dir == null) return null;
+        File outFile = new File(dir, DEFAULT_WALLPAPER_NAME);
+        try (android.content.res.AssetFileDescriptor afd = ctx.getAssets().openFd(DEFAULT_WALLPAPER_NAME)) {
+            long assetLen = afd.getLength();
+            if (outFile.isFile() && outFile.length() > 0 && (assetLen < 0 || outFile.length() == assetLen)) {
+                return outFile;
+            }
+        } catch (IOException ignored) {
+            if (outFile.isFile() && outFile.length() > 0) return outFile;
+        }
+        File tmp = new File(dir, DEFAULT_WALLPAPER_NAME + ".tmp");
+        try (InputStream in = ctx.getAssets().open(DEFAULT_WALLPAPER_NAME);
+             FileOutputStream out = new FileOutputStream(tmp)) {
+            byte[] buf = new byte[8192];
+            int n;
+            while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+            out.flush();
+            if (tmp.renameTo(outFile)) return outFile;
+            tmp.delete();
+        } catch (IOException ignored) {
+            tmp.delete();
+        }
+        return outFile.isFile() && outFile.length() > 0 ? outFile : null;
     }
 
     static float clampAnimationScale(float value, float fallback) {

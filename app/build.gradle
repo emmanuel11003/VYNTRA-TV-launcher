@@ -116,8 +116,9 @@ tasks.register('optimizeReleaseApk') {
              '--v3-signing-enabled', 'false', '--ks', sc.storeFile.absolutePath, '--ks-pass', "pass:${sc.storePassword}",
              '--key-pass', "pass:${sc.keyPassword}", '--ks-key-alias', sc.keyAlias, '--out', out.absolutePath, aligned.absolutePath])
         run(["${bt}/${v6Exe('apksigner')}", 'verify', out.absolutePath])
-        logger.lifecycle("CleanYourTV v${android.defaultConfig.versionName}: ${out} (${out.length()} bytes, gate 589824)")
-        if (out.length() >= 589824) throw new GradleException("APK size gate exceeded: ${out.length()} >= 589824 bytes")
+        // APK size gate includes bundled default_wallpaper.jpg (106 KB).
+        logger.lifecycle("VYNTRA TV Launcher v${android.defaultConfig.versionName}: ${out} (${out.length()} bytes, gate 720896)")
+        if (out.length() >= 720896) throw new GradleException("APK size gate exceeded: ${out.length()} >= 720896 bytes")
     }
 }
 afterEvaluate {
