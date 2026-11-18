@@ -14,9 +14,9 @@ A standalone, 100% offline Android TV / Google TV launcher (`minSdk 26`, `target
 |---|---|
 | ![Notification Center](docs/screenshots/notifications.png) | ![Launcher Settings](docs/screenshots/launcher-settings.png) |
 
-| Month Calendar & Clock Screensaver |
-|---|
-| ![Screensaver](docs/screenshots/screensaver.png) |
+| Month Calendar & Clock Screensaver | App Card Long-Press Menu |
+|---|---|
+| ![Screensaver](docs/screenshots/screensaver.png) | ![App Card Long-Press Menu](docs/screenshots/tile-menu.png) |
 
 ---
 
@@ -26,6 +26,13 @@ A standalone, 100% offline Android TV / Google TV launcher (`minSdk 26`, `target
 - **Configurable Grid & Frosted Dock**: Supports 4–7 columns, configurable dock opacity (`30%`–`100%`), concentric dock padding (`DockDecoration`, `DockSlots`), and `Order` persistence.
 - **Spring Physics & Ambient Lighting**: Spring-interpolated glass focus highlight (`GlassView` cached in hardware texture layer), `WindowMorph` transitions, `Horizon` ambient brand glow, and async `HeroArt` blurred backdrop (`LauncherExecutors.io()`).
 - **App Library & Hidden Apps**: `AppLibraryDialog` manages apps removed from Home without uninstalling.
+- **Long-Press Action on App Cards (`tile_menu` / `MainActivity.onTileLongPress`)**:
+  - Holding **OK / `DPAD_CENTER`** or pressing **`KEYCODE_MENU`** on any focused app card opens a contextual glass menu anchored above or below the tile:
+    - **Replace with another app** (dock tiles) / **Add to dock** (grid tiles) — enters dock swap mode (`startDockEditFor`).
+    - **Move** — picks up the focused tile directly in reorder mode.
+    - **Remove from Home** (when `app_library` is enabled) — moves the app to the App Library without uninstalling.
+    - **App info** — opens the Android system App Info page (also the direct fallback when `tile_menu` is set to `false`).
+  - Holding **OK** on the top-bar **Settings** pill opens `HomeMenus.showSettingsMenu` (`Launcher settings`, native vendor settings when present, `Edit dock`, `Rearrange apps`, and `Power menu`).
 - **Usage Tracking**: `LastOpened` records app close timestamps on return to Home and syncs with `UsageStatsManager` (`PACKAGE_USAGE_STATS`) at most once per minute on a background priority thread.
 - **Top Bar Telemetry & Indicators**: Optional live clock (`LiveClockView`, `ClockFormat`: `System` / `12-hour` / `24-hour`), Wi-Fi status color indicator, Inputs pill (`TvInputRouter`), Settings pill, and live RAM / Storage readout (`MemInfo`, `StatsText`).
 
