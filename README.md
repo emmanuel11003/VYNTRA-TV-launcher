@@ -168,3 +168,10 @@ tv-launcher/
 ├── FONT-LICENSE-OFL.txt          # Outfit font license
 └── ICONS-LICENSE-FLUENT-EMOJI.txt
 ```
+
+---
+
+## Credits & Inspiration
+
+Inspired by and originally built upon [Gathin23/cleanyourtv](https://github.com/Gathin23/cleanyourtv).
+
