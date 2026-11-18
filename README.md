@@ -1,4 +1,4 @@
-# TV Home (`com.emmanuel.tvhome` v7.0)
+# VYNTRA (`com.emmanuel.tvhome` v7.0)
 
 A standalone, 100% offline Android TV / Google TV launcher (`minSdk 26`, `targetSdk 34`, `versionCode 70`, `versionName 7.0`, **zero `INTERNET` permission**) unifying a tvOS-inspired glass Home screen, built-in Quick Settings with Sleep Timer, built-in Notification Center, standalone Home & Screensaver Wallpaper Manager, interactive Remote Button Mapper, and self-healing key services — tuned specifically for **Haier MatrixTV DE 55"** (`HR9676EUF`, MediaTek Cortex-A55 / Mali).
 
@@ -154,7 +154,7 @@ Both installer scripts build the release APK, install it over ADB, set `com.emma
 ## Project Layout
 
 ```text
-tv-launcher/
+VYNTRA/
 ├── app/
 │   ├── build.gradle              # R8/ProGuard, aapt2 resource optimization, Zopfli + v2-only APK gate
 │   ├── lint.xml                  # Zero-error Android Lint policy
