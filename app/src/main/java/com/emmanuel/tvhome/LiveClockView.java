@@ -4,7 +4,6 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.graphics.Color;
 import android.hardware.display.DisplayManager;
 import android.os.Handler;
 import android.os.Looper;
@@ -12,7 +11,6 @@ import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.format.DateFormat;
-import android.text.style.ForegroundColorSpan;
 import android.text.style.RelativeSizeSpan;
 import android.util.AttributeSet;
 import android.view.Display;
@@ -76,8 +74,6 @@ public class LiveClockView extends TextView {
 
     private final SpannableStringBuilder spanBuilder = new SpannableStringBuilder();
     private final RelativeSizeSpan sizeSpan = new RelativeSizeSpan(0.62f);
-    private ForegroundColorSpan colorSpan;
-    private int cachedColor;
     private final Calendar calendar = Calendar.getInstance();
     private final Handler handler = new Handler(Looper.getMainLooper());
 
@@ -326,17 +322,7 @@ public class LiveClockView extends TextView {
         spanBuilder.append((char) ('0' + (sec % 10)));
         int secEnd = spanBuilder.length();
 
-        // 72% opacity matching secondary am/pm styling
-        if (colorSpan == null || cachedColor != textColor) {
-            cachedColor = textColor;
-            int alpha = Color.alpha(textColor);
-            int subAlpha = Math.round(alpha * 0.72f);
-            int subColor = Color.argb(subAlpha, Color.red(textColor), Color.green(textColor), Color.blue(textColor));
-            colorSpan = new ForegroundColorSpan(subColor);
-        }
-
         spanBuilder.setSpan(sizeSpan, secStart, secEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        spanBuilder.setSpan(colorSpan, secStart, secEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
 
         setText(spanBuilder, BufferType.SPANNABLE);
     }
