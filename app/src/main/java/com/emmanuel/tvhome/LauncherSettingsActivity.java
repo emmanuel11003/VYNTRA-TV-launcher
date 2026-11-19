@@ -465,11 +465,16 @@ public final class LauncherSettingsActivity extends Activity {
         String current = forScreensaver
                 ? choices.getString(Config.SCREENSAVER_WALLPAPER_KEY, null)
                 : choices.getString(Config.WALLPAPER_CHOICE_KEY, null);
-        int prefixCount = 1;
+        Intent syncIntent = getPackageManager().getLaunchIntentForPackage("com.emmanuel.wallpapersync");
+        boolean hasPhoneSync = syncIntent != null;
+        int prefixCount = hasPhoneSync ? 2 : 1;
         int tailCount = forScreensaver ? 0 : 1;
         int totalItems = prefixCount + images.size() + tailCount;
         String[] labels = new String[totalItems];
         labels[0] = getString(R.string.wallpaper_custom_browse);
+        if (hasPhoneSync) {
+            labels[1] = "Sync from phone (Wi-Fi / QR)…";
+        }
         for (int i = 0; i < images.size(); i++) {
             File f = images.get(i);
             String parent = f.getParentFile() != null ? f.getParentFile().getName() : "";
@@ -504,6 +509,12 @@ public final class LauncherSettingsActivity extends Activity {
                         int req = forScreensaver ? PICK_SCREENSAVER_WALLPAPER_REQUEST : PICK_WALLPAPER_REQUEST;
                         try {
                             startActivityForResult(Intent.createChooser(intent, getString(R.string.wallpaper_label)), req);
+                        } catch (ActivityNotFoundException e) {
+                            Toast.makeText(this, R.string.not_available, Toast.LENGTH_SHORT).show();
+                        }
+                    } else if (hasPhoneSync && which == 1) {
+                        try {
+                            startActivity(syncIntent);
                         } catch (ActivityNotFoundException e) {
                             Toast.makeText(this, R.string.not_available, Toast.LENGTH_SHORT).show();
                         }
