@@ -229,6 +229,9 @@
     <string name="hide_show_apps_count" translatable="false">%1$d hidden on Home</string>
     <string name="hide_show_apps_dialog_title" translatable="false">Show App Cards on Home (Checked = Visible)</string>
     <string name="hide_show_apps_reset" translatable="false">Reset Defaults</string>
+    <string name="tile_uninstall" translatable="false">Uninstall</string>
+    <string name="tile_disable" translatable="false">Disable</string>
+    <string name="tile_disable_hint" translatable="false">Select Disable in App info</string>
 
     <string name="choose_wallpaper" translatable="false">Change Wallpaper…</string>
 </resources>

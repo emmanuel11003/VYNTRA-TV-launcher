@@ -3721,6 +3721,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // Some firmware has no App info page at all; a row that only toasts "can't open" helps nobody.
         Intent info = SystemSettings.appInfo(this, pkg);
         if (info != null) HomeMenus.addSettingsMenuRow(getLayoutInflater(), rows, popup, R.string.library_app_info, () -> open(info));
+        if (!SystemSettings.isSystemApp(this, pkg)) {
+            Intent uninstall = SystemSettings.uninstall(this, pkg);
+            if (uninstall != null) {
+                HomeMenus.addSettingsMenuRow(getLayoutInflater(), rows, popup, R.string.tile_uninstall, () -> open(uninstall));
+            }
+        } else if (info != null) {
+            HomeMenus.addSettingsMenuRow(getLayoutInflater(), rows, popup, R.string.tile_disable, () -> {
+                Toast.makeText(this, R.string.tile_disable_hint, Toast.LENGTH_SHORT).show();
+                open(info);
+            });
+        }
         if (rows.getChildCount() == 0) {
             if (openPopup == popup) openPopup = null;
             return;
