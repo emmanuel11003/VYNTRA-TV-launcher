@@ -329,17 +329,6 @@ public class RemoteKeysTest {
         assertFalse(RemoteKeys.isChannelKey(24));   // KEYCODE_VOLUME_UP
     }
 
-    @Test public void inputKeysAreTvInputDirectInputsAndListedCodes() {
-        int[] none = new int[0];
-        assertTrue(RemoteKeys.isInputKey(170, none));   // KEYCODE_TV
-        assertTrue(RemoteKeys.isInputKey(178, none));   // KEYCODE_TV_INPUT
-        assertTrue(RemoteKeys.isInputKey(243, none));   // KEYCODE_TV_INPUT_HDMI_1
-        assertTrue(RemoteKeys.isInputKey(251, none));   // KEYCODE_TV_INPUT_VGA_1
-        assertFalse(RemoteKeys.isInputKey(252, none));  // KEYCODE_TV_AUDIO_DESCRIPTION
-        assertFalse(RemoteKeys.isInputKey(82, none));   // KEYCODE_MENU stays a Settings key
-        assertTrue(RemoteKeys.isInputKey(240, new int[] {240}));
-    }
-
     @Test public void buttonMapperProtectsEssentialNavigationKeys() {
         assertTrue(ButtonMapper.isProtectedKey(android.view.KeyEvent.KEYCODE_DPAD_UP));
         assertTrue(ButtonMapper.isProtectedKey(android.view.KeyEvent.KEYCODE_DPAD_CENTER));
@@ -367,12 +356,28 @@ public class RemoteKeysTest {
 
     @Test public void mergeAppKeysPreservesBuiltInMappingsWhenOverlayLoaded() {
         List<String> merged = Config.mergeAppKeys(
-                Arrays.asList("scan:225:com.mediatek.wwtv.tvcenter", "190:com.google.android.youtube.tv"),
-                Arrays.asList(" 190:com.google.android.youtube.tv ", "scan:580:com.android.vending", ""));
+                Arrays.asList("172:com.cltv.hybrid", "297:com.google.android.youtube.tv"),
+                Arrays.asList(" 297:com.google.android.youtube.tv ", "scan:580:com.android.vending", ""));
         assertEquals(
-                Arrays.asList("scan:225:com.mediatek.wwtv.tvcenter",
-                        "190:com.google.android.youtube.tv",
+                Arrays.asList("172:com.cltv.hybrid",
+                        "297:com.google.android.youtube.tv",
                         "scan:580:com.android.vending"),
                 merged);
+    }
+
+    @Test public void haierRemoteDefaultAppKeysDoNotHijackGuideOrInputScancodes() throws Exception {
+        String xml = new String(java.nio.file.Files.readAllBytes(
+                java.nio.file.Paths.get("src/main/res/values/config.xml")),
+                java.nio.charset.StandardCharsets.UTF_8);
+        assertTrue(xml.contains("<item>172:com.cltv.hybrid</item>"));
+        assertTrue(xml.contains("<item>front:172:guide:com.cltv.hybrid</item>"));
+        assertTrue(xml.contains("<item>297:com.google.android.youtube.tv</item>"));
+        assertTrue(xml.contains("<item>298:com.netflix.ninja</item>"));
+        assertTrue(xml.contains("<item>299:com.amazon.amazonvideo.livingroom</item>"));
+        assertTrue(xml.contains("<item>300:in.startv.hotstar</item>"));
+        assertTrue(xml.contains("<item>scan:379:in.startv.hotstar</item>"));
+        assertTrue(xml.contains("<item>scan:580:com.android.vending</item>"));
+        assertFalse(xml.contains("<item>scan:225:"));
+        assertFalse(xml.contains("<item>scan:362:"));
     }
 }

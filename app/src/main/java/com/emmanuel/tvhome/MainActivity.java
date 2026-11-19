@@ -704,20 +704,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     return true;
                 }
                 if (dockRow && getPosition(child) < COLUMNS) return false;
-                int top = child.getTop();
-                int bottom = top + rect.top + rect.height();
-                View topBarView = findViewById(R.id.topBar);
-                int limitTop = (topBarView != null && topBarView.getVisibility() == View.VISIBLE && topBarView.getBottom() > 0)
-                        ? topBarView.getBottom() + Math.round(14 * density)
-                        : 0;
-                // A row already cleanly below the top bar and fully on screen stays put, even inside the bottom
-                // padding. Checking child.getTop() (with limitTop already including glass margin) keeps sideways
-                // moves in the same row from nudging the grid vertically when revealRect has negative top padding.
+                int glassPad = Math.round(6 * density);
+                // grid already sits below topBar (10dp gap in activity_main.xml), so grid-local y=0 is clear of
+                // the header; keep TOP_ROOM_DP (12dp) for the focused tile's upward scale, lift and glass glow.
+                int limitTop = Math.round(AppAdapter.TOP_ROOM_DP * density);
                 int limitBottom = getHeight() - getPaddingBottom();
-                int dy;
-                if (top < limitTop - Math.round(2 * density)) dy = top - limitTop;
-                else if (bottom <= getHeight()) dy = 0;
-                else dy = Math.min(top - limitTop, bottom - limitBottom);
+                int dy = GridNavigation.verticalRevealDy(
+                        child.getTop(), child.getBottom(), rect.top, rect.height(), glassPad,
+                        limitTop, limitBottom, getHeight(), Math.round(2 * density),
+                        parent.canScrollVertically(-1), parent.canScrollVertically(1));
                 if (dy == 0) return false;
                 if (immediate || reducedMotion || !animations) parent.scrollBy(0, dy);
                 else parent.smoothScrollBy(0, dy, scrollInterpolator, 280);
@@ -2143,7 +2138,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             showGlowOnly(position);
             // Scroll just enough so the whole glass (not only the tile) is visible; skip if FocusFinder already started the scroll.
             if (grid.getScrollState() == RecyclerView.SCROLL_STATE_IDLE) {
-                revealRect.set(0, -(int) pad * 2, item.getWidth(), item.getHeight() + (int) pad);
+                int padPx = Math.round(pad);
+                revealRect.set(0, -padPx * 2, item.getWidth(), item.getHeight() + padPx);
                 grid.requestChildRectangleOnScreen(item, revealRect, reducedMotion);
             }
         }

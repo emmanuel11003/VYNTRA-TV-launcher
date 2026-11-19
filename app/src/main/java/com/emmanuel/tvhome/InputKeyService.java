@@ -1,6 +1,7 @@
 package com.emmanuel.tvhome;
 
 import android.accessibilityservice.AccessibilityService;
+import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -18,6 +19,8 @@ import java.util.Map;
  * Opt-in: INPUT_KEY_SERVICE=1 build-and-install.sh (or -InputKeyService on Windows) enables it.
  */
 public class InputKeyService extends AccessibilityService {
+
+    private static final String ACTION_VIEW_INPUTS = "com.android.tv.action.VIEW_INPUTS";
 
     private int[] inputKeycodes = new int[0];
     private Map<Integer, String> appKeys = Collections.emptyMap();
@@ -73,6 +76,12 @@ public class InputKeyService extends AccessibilityService {
         }
     }
 
+    private boolean isInputKey(int keyCode) {
+        if (keyCode == KeyEvent.KEYCODE_TV || keyCode == KeyEvent.KEYCODE_TV_INPUT) return true;
+        for (int code : inputKeycodes) if (keyCode == code) return true;
+        return false;
+    }
+
     @Override
     protected boolean onKeyEvent(KeyEvent event) {
         if (consumeVolumeKeys && VolumeKeys.handle(this, event)) return true;
@@ -82,7 +91,14 @@ public class InputKeyService extends AccessibilityService {
                 holdAppScancodes.get(event.getScanCode()))) return true;
         if (RemoteKeys.handle(this, event, appKeys.get(event.getKeyCode()),
                 holdAppKeys.get(event.getKeyCode()))) return true;
-        return RemoteKeys.handleInputKey(this, event, inputKeycodes);
+        if (!isInputKey(event.getKeyCode())) return false;
+        if (event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled()) {
+            try {
+                startActivity(new Intent(ACTION_VIEW_INPUTS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            } catch (ActivityNotFoundException ignored) {
+            }
+        }
+        return true;
     }
 
     /** Keep service record across transient unbinds (reinstalls/updates); only release held remote keys. */
