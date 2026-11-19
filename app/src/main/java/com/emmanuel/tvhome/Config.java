@@ -48,6 +48,8 @@ final class Config {
     static final String SCREENSAVER_BG_KEY = "screensaver_bg";
     static final String DOCK_OPACITY_KEY = "dock_opacity";
     static final String CLOCK_FORMAT_KEY = "clock_format";
+    static final String USER_HIDDEN_APPS_KEY = "user_hidden_apps";
+    static final String USER_SHOWN_APPS_KEY = "user_shown_apps";
     /**
      * Counts the changes made in Launcher settings. Home remembers the count it was built with and rebuilds on
      * resume when it differs, however the settings were left (see MainActivity#onResume).
@@ -724,6 +726,16 @@ final class Config {
         SharedPreferences choices = ctx.getSharedPreferences(SETTINGS_NAME, Context.MODE_PRIVATE);
         // Unmounted storage looks like a theme reset; compare only once the file is readable.
         if (mounted) syncThemeChoices(choices, dir, file);
+        Set<String> userHidden = choices.getStringSet(USER_HIDDEN_APPS_KEY, Collections.emptySet());
+        Set<String> userShown = choices.getStringSet(USER_SHOWN_APPS_KEY, Collections.emptySet());
+        if (!userShown.isEmpty()) {
+            hidden.removeAll(userShown);
+        }
+        for (String pkg : userHidden) {
+            if (pkg != null && !pkg.isEmpty() && !hidden.contains(pkg)) {
+                hidden.add(pkg);
+            }
+        }
         int chosenColumns = choices.getInt("columns", columns);
         if (chosenColumns >= 4 && chosenColumns <= 7) columns = chosenColumns;
         int chosenRows = choices.getInt(ROWS_BELOW_DOCK_KEY, rowsBelow);

@@ -23,8 +23,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -70,6 +74,7 @@ public final class LauncherSettingsActivity extends Activity {
     private TextView followThemeChoice;
     private TextView openOnStartChoice;
     private TextView buttonMapperSummary;
+    private TextView hiddenAppsSummary;
     private int columns;
     private int dockOpacity;
     private boolean animations;
@@ -106,6 +111,12 @@ public final class LauncherSettingsActivity extends Activity {
         if (buttonMapperChoice != null) {
             buttonMapperChoice.setVisibility(View.VISIBLE);
             buttonMapperChoice.setOnClickListener(v -> ButtonMapper.showButtonMapperMenu(this, () -> refresh(Config.load(this))));
+        }
+        View hiddenAppsChoice = findViewById(R.id.hiddenAppsChoice);
+        hiddenAppsSummary = findViewById(R.id.hiddenAppsSummary);
+        if (hiddenAppsChoice != null) {
+            hiddenAppsChoice.setVisibility(View.VISIBLE);
+            hiddenAppsChoice.setOnClickListener(v -> showHiddenAppsDialog());
         }
         columns = config.columns;
         dockOpacity = config.dockOpacity;
@@ -898,6 +909,85 @@ public final class LauncherSettingsActivity extends Activity {
                 buttonMapperSummary.setText(R.string.button_mapper_summary);
             }
         }
+
+        // Show / Hide App Cards
+        if (hiddenAppsSummary != null) {
+            int hiddenCount = config.hiddenApps.size();
+            if (hiddenCount > 0) {
+                hiddenAppsSummary.setText(getString(R.string.hide_show_apps_count, hiddenCount));
+            } else {
+                hiddenAppsSummary.setText(R.string.hide_show_apps_summary);
+            }
+        }
+    }
+
+    private void showHiddenAppsDialog() {
+        PackageManager pm = getPackageManager();
+        Map<String, String> byPkg = new HashMap<>();
+        String self = getPackageName();
+        for (String category : new String[]{Intent.CATEGORY_LEANBACK_LAUNCHER, Intent.CATEGORY_LAUNCHER}) {
+            Intent query = new Intent(Intent.ACTION_MAIN).addCategory(category);
+            for (ResolveInfo ri : pm.queryIntentActivities(query, 0)) {
+                String pkg = ri.activityInfo.packageName;
+                if (self.equals(pkg) || byPkg.containsKey(pkg)) continue;
+                String label = String.valueOf(ri.loadLabel(pm)).trim();
+                byPkg.put(pkg, label.isEmpty() ? pkg : label);
+            }
+        }
+        if (byPkg.isEmpty()) {
+            Toast.makeText(this, R.string.not_available, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        List<Map.Entry<String, String>> entries = new ArrayList<>(byPkg.entrySet());
+        entries.sort((a, b) -> a.getValue().compareToIgnoreCase(b.getValue()));
+
+        Config current = Config.load(this);
+        Set<String> effectiveHidden = new HashSet<>(current.hiddenApps);
+        Set<String> userHidden = choices.getStringSet(Config.USER_HIDDEN_APPS_KEY, Collections.emptySet());
+        Set<String> userShown = choices.getStringSet(Config.USER_SHOWN_APPS_KEY, Collections.emptySet());
+
+        String[] labels = new String[entries.size()];
+        boolean[] checked = new boolean[entries.size()];
+        boolean[] baseHidden = new boolean[entries.size()];
+        for (int i = 0; i < entries.size(); i++) {
+            String pkg = entries.get(i).getKey();
+            labels[i] = entries.get(i).getValue();
+            boolean isHidden = effectiveHidden.contains(pkg);
+            checked[i] = !isHidden;
+            baseHidden[i] = (isHidden && !userHidden.contains(pkg)) || userShown.contains(pkg);
+        }
+
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.hide_show_apps_dialog_title)
+                .setMultiChoiceItems(labels, checked, (dialog, which, isChecked) -> checked[which] = isChecked)
+                .setPositiveButton(android.R.string.ok, (dialog, which) -> {
+                    Set<String> nextHidden = new HashSet<>();
+                    Set<String> nextShown = new HashSet<>();
+                    for (int i = 0; i < entries.size(); i++) {
+                        String pkg = entries.get(i).getKey();
+                        if (!checked[i] && !baseHidden[i]) {
+                            nextHidden.add(pkg);
+                        } else if (checked[i] && baseHidden[i]) {
+                            nextShown.add(pkg);
+                        }
+                    }
+                    choices.edit()
+                            .putStringSet(Config.USER_HIDDEN_APPS_KEY, nextHidden)
+                            .putStringSet(Config.USER_SHOWN_APPS_KEY, nextShown)
+                            .apply();
+                    changed();
+                    refresh();
+                })
+                .setNeutralButton(R.string.hide_show_apps_reset, (dialog, which) -> {
+                    choices.edit()
+                            .remove(Config.USER_HIDDEN_APPS_KEY)
+                            .remove(Config.USER_SHOWN_APPS_KEY)
+                            .apply();
+                    changed();
+                    refresh();
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
     }
 
     private boolean hasOnTvChoices() {

@@ -224,6 +224,11 @@
     <string name="button_mapper_action_recents" translatable="false">Recent Apps</string>
     <string name="button_mapper_launch_app" translatable="false">Launch App…</string>
     <string name="button_mapper_key_cannot_remap" translatable="false">This navigation button cannot be remapped.</string>
+    <string name="hide_show_apps" translatable="false">Show / Hide App Cards</string>
+    <string name="hide_show_apps_summary" translatable="false">Choose which app cards appear on Home</string>
+    <string name="hide_show_apps_count" translatable="false">%1$d hidden on Home</string>
+    <string name="hide_show_apps_dialog_title" translatable="false">Show App Cards on Home (Checked = Visible)</string>
+    <string name="hide_show_apps_reset" translatable="false">Reset Defaults</string>
 
     <string name="choose_wallpaper" translatable="false">Change Wallpaper…</string>
 </resources>
