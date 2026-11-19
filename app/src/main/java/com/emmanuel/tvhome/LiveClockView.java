@@ -5,7 +5,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Color;
-import android.graphics.Typeface;
 import android.hardware.display.DisplayManager;
 import android.os.Handler;
 import android.os.Looper;
@@ -15,7 +14,6 @@ import android.text.Spanned;
 import android.text.format.DateFormat;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.RelativeSizeSpan;
-import android.text.style.StyleSpan;
 import android.util.AttributeSet;
 import android.view.Display;
 import android.view.View;
@@ -78,8 +76,6 @@ public class LiveClockView extends TextView {
 
     private final SpannableStringBuilder spanBuilder = new SpannableStringBuilder();
     private final RelativeSizeSpan sizeSpan = new RelativeSizeSpan(0.62f);
-    private final StyleSpan boldSpan = new StyleSpan(Typeface.BOLD);
-    private final StyleSpan normalSpan = new StyleSpan(Typeface.NORMAL);
     private ForegroundColorSpan colorSpan;
     private int cachedColor;
     private final Calendar calendar = Calendar.getInstance();
@@ -339,8 +335,6 @@ public class LiveClockView extends TextView {
             colorSpan = new ForegroundColorSpan(subColor);
         }
 
-        spanBuilder.setSpan(boldSpan, 0, secStart, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        spanBuilder.setSpan(normalSpan, secStart, secEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         spanBuilder.setSpan(sizeSpan, secStart, secEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         spanBuilder.setSpan(colorSpan, secStart, secEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
 
