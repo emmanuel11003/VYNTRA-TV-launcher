@@ -5,20 +5,25 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Lightweight pure-Java HTTP/1.1 server for local Wi-Fi wallpaper uploads.
  * No external HTTP library required.
  */
 final class WallpaperHttpServer {
+    private static final byte[] HTML_BYTES = WebUi.HTML.getBytes(StandardCharsets.UTF_8);
     interface Handler {
         String statusJson();
         Result applyWallpaper(String target, byte[] imageBytes);
@@ -78,7 +83,10 @@ final class WallpaperHttpServer {
         IOException last = null;
         for (int p = preferredPort; p < preferredPort + 10; p++) {
             try {
-                serverSocket = new ServerSocket(p);
+                ServerSocket s = new ServerSocket();
+                s.setReuseAddress(true);
+                s.bind(new InetSocketAddress(p));
+                serverSocket = s;
                 port = p;
                 break;
             } catch (IOException e) {
@@ -89,7 +97,14 @@ final class WallpaperHttpServer {
             throw last != null ? last : new IOException("No free port");
         }
         running = true;
-        pool = Executors.newCachedThreadPool();
+        ThreadPoolExecutor exec = new ThreadPoolExecutor(0, 4, 30L, TimeUnit.SECONDS,
+                new LinkedBlockingQueue<>(16), r -> {
+                    Thread t = new Thread(r, "wallpaper-http-worker");
+                    t.setDaemon(true);
+                    return t;
+                });
+        exec.allowCoreThreadTimeOut(true);
+        pool = exec;
         Thread acceptThread = new Thread(() -> {
             while (running) {
                 try {
@@ -125,7 +140,8 @@ final class WallpaperHttpServer {
         try (Socket s = socket;
              BufferedInputStream in = new BufferedInputStream(s.getInputStream());
              OutputStream out = s.getOutputStream()) {
-            String requestLine = readLine(in);
+            ByteArrayOutputStream lineBuf = new ByteArrayOutputStream(128);
+            String requestLine = readLine(in, lineBuf);
             if (requestLine == null || requestLine.isEmpty()) return;
 
             String[] parts = requestLine.split(" ");
@@ -138,7 +154,7 @@ final class WallpaperHttpServer {
 
             Map<String, String> headers = new HashMap<>();
             String line;
-            while ((line = readLine(in)) != null && !line.isEmpty()) {
+            while (headers.size() < 64 && (line = readLine(in, lineBuf)) != null && !line.isEmpty()) {
                 int colon = line.indexOf(':');
                 if (colon > 0) {
                     headers.put(line.substring(0, colon).trim().toLowerCase(Locale.ROOT),
@@ -162,7 +178,7 @@ final class WallpaperHttpServer {
         }
 
         if ("GET".equals(method) && "/".equals(path)) {
-            writeResponse(out, 200, "text/html; charset=utf-8", WebUi.HTML.getBytes(StandardCharsets.UTF_8));
+            writeResponse(out, 200, "text/html; charset=utf-8", HTML_BYTES);
             return;
         }
         if ("GET".equals(method) && "/api/status".equals(path)) {
@@ -173,7 +189,9 @@ final class WallpaperHttpServer {
         if ("POST".equals(method) && ("/api/wallpaper".equals(path) || "/api/clear".equals(path))) {
             String expectedPin = pin;
             String givenPin = headers.get("x-pin");
-            if (expectedPin != null && !expectedPin.isEmpty() && !expectedPin.equals(givenPin == null ? "" : givenPin.trim())) {
+            if (expectedPin != null && !expectedPin.isEmpty()
+                    && !MessageDigest.isEqual(expectedPin.getBytes(StandardCharsets.UTF_8),
+                            (givenPin == null ? "" : givenPin.trim()).getBytes(StandardCharsets.UTF_8))) {
                 writeJson(out, 403, "{\"ok\":false,\"error\":\"Invalid pairing PIN\"}");
                 return;
             }
@@ -214,8 +232,21 @@ final class WallpaperHttpServer {
         writeResponse(out, code, "application/json; charset=utf-8", json.getBytes(StandardCharsets.UTF_8));
     }
 
+    private static String reasonPhrase(int code) {
+        switch (code) {
+            case 200: return "OK";
+            case 400: return "Bad Request";
+            case 403: return "Forbidden";
+            case 404: return "Not Found";
+            case 413: return "Payload Too Large";
+            case 415: return "Unsupported Media Type";
+            case 502: return "Bad Gateway";
+            default: return "Error";
+        }
+    }
+
     private static void writeResponse(OutputStream out, int code, String contentType, byte[] body) throws IOException {
-        String status = code == 200 ? "OK" : code == 403 ? "Forbidden" : code == 404 ? "Not Found" : "Error";
+        String status = reasonPhrase(code);
         String header = "HTTP/1.1 " + code + " " + status + "\r\n"
                 + "Content-Type: " + contentType + "\r\n"
                 + "Content-Length: " + body.length + "\r\n"
@@ -246,8 +277,8 @@ final class WallpaperHttpServer {
         }
     }
 
-    private static String readLine(InputStream in) throws IOException {
-        ByteArrayOutputStream buf = new ByteArrayOutputStream();
+    private static String readLine(InputStream in, ByteArrayOutputStream buf) throws IOException {
+        buf.reset();
         int prev = -1;
         int c;
         while ((c = in.read()) != -1) {

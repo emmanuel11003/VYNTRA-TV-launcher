@@ -24,6 +24,10 @@ import java.util.Locale;
 public final class MonthCalendarView extends View {
 
     private static final String[] DEFAULT_WEEKDAYS = {"S", "M", "T", "W", "T", "F", "S"};
+    private static final String[] DAY_LABELS = {
+            "", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15",
+            "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31"
+    };
 
     private final Paint titlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint headerPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -40,6 +44,7 @@ public final class MonthCalendarView extends View {
     private int todayDayOfMonth;
 
     private float density;
+    private float dayVerticalOffset;
     private float titleY;
     private float headerY;
     private float gridTop;
@@ -47,6 +52,8 @@ public final class MonthCalendarView extends View {
     private float colWidth;
     private float rowHeight;
     private float todayPillRadius;
+    private int lastYear = -1, lastMonth = -1, lastDay = -1;
+    private Locale lastLocale;
 
     public MonthCalendarView(Context context) {
         this(context, null);
@@ -96,6 +103,8 @@ public final class MonthCalendarView extends View {
         todayTextPaint.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
 
         todayPillRadius = 14f * density;
+        Paint.FontMetrics fm = dayPaint.getFontMetrics();
+        dayVerticalOffset = -(fm.ascent + fm.descent) / 2f;
 
         initWeekdayLabels();
         updateCalendarData();
@@ -127,9 +136,21 @@ public final class MonthCalendarView extends View {
         LocalDate today = LocalDate.now();
         int year = today.getYear();
         int month = today.getMonthValue();
-        todayDayOfMonth = today.getDayOfMonth();
-
+        int day = today.getDayOfMonth();
         Locale locale = Locale.getDefault();
+        boolean localeChanged = !locale.equals(lastLocale);
+        if (year == lastYear && month == lastMonth && day == lastDay && !localeChanged) {
+            return;
+        }
+        lastYear = year;
+        lastMonth = month;
+        lastDay = day;
+        if (localeChanged) {
+            lastLocale = locale;
+            initWeekdayLabels();
+        }
+        todayDayOfMonth = day;
+
         String monthName = today.getMonth().getDisplayName(TextStyle.FULL, locale).toUpperCase(locale);
         titleText = monthName + " " + year;
 
@@ -183,9 +204,6 @@ public final class MonthCalendarView extends View {
         }
 
         // 3. Draw Days Grid
-        Paint.FontMetrics fm = dayPaint.getFontMetrics();
-        float verticalOffset = -(fm.ascent + fm.descent) / 2f;
-
         for (int day = 1; day <= daysInMonth; day++) {
             int index = startColumn + day - 1;
             int col = index % 7;
@@ -200,10 +218,10 @@ public final class MonthCalendarView extends View {
                 todayRect.set(cx - radius, cy - radius, cx + radius, cy + radius);
                 canvas.drawRoundRect(todayRect, radius, radius, todayBgPaint);
 
-                canvas.drawText(Integer.toString(day), cx, cy + verticalOffset, todayTextPaint);
+                canvas.drawText(DAY_LABELS[day], cx, cy + dayVerticalOffset, todayTextPaint);
             } else {
                 boolean isWeekend = (col == 0 || col == 6);
-                canvas.drawText(Integer.toString(day), cx, cy + verticalOffset, isWeekend ? weekendPaint : dayPaint);
+                canvas.drawText(DAY_LABELS[day], cx, cy + dayVerticalOffset, isWeekend ? weekendPaint : dayPaint);
             }
         }
     }

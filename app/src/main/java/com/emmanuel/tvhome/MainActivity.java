@@ -184,6 +184,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     };
     /** The app whose artwork heroArt shows, so focusing it again only fades it back in. */
     private String heroArtKey;
+    private static final ForegroundColorSpan HERO_META_SPAN = new ForegroundColorSpan(0xFFFFFFFF);
+    private String lastHeroMetaText;
+    private int lastHeroDotPos = -1;
+    private int lastHeroDotCount = -1;
     /** The focus glow's colour while the cinematic shelf tints it, 0 for plain white glass. */
     private int glassAccent;
     private int ambientColor = -1;
@@ -2356,14 +2360,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private void updateHeroMeta(int position) {
         long when = LastOpened.get(this, adapter.packageAt(position));
         if (when <= 0) {
+            lastHeroMetaText = null;
             heroMeta.setVisibility(View.INVISIBLE);
             return;
         }
         String rel = LastOpened.describe(this, when);
         String text = getString(R.string.last_opened, rel);
+        if (text.equals(lastHeroMetaText) && heroMeta.getVisibility() == View.VISIBLE) return;
+        lastHeroMetaText = text;
         SpannableString line = new SpannableString(text);
         int at = text.indexOf(rel);
-        if (at >= 0) line.setSpan(new ForegroundColorSpan(0xFFFFFFFF), at, at + rel.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        if (at >= 0) line.setSpan(HERO_META_SPAN, at, at + rel.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         heroMeta.setText(line);
         heroMeta.setVisibility(View.VISIBLE);
     }
@@ -2384,7 +2391,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 if (i > 0) lp.leftMargin = (int) (6 * density);
                 heroDots.addView(dot, lp);
             }
+            lastHeroDotPos = -1;
         }
+        if (position == lastHeroDotPos && count == lastHeroDotCount) return;
+        lastHeroDotPos = position;
+        lastHeroDotCount = count;
         for (int i = 0; i < count; i++) {
             View dot = heroDots.getChildAt(rtlAppGrid ? count - 1 - i : i);
             boolean on = i == position;
@@ -2664,30 +2675,42 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private int cpuFromProcStat() {
         String s = readFirstLine("/proc/stat");
         if (s == null || !s.startsWith("cpu")) return CPU_UNREADABLE;
-        String[] t = s.trim().split("\\s+");
-        if (t.length < 5) return CPU_UNREADABLE;
-        try {
-            long user = Long.parseLong(t[1]), nice = Long.parseLong(t[2]), sys = Long.parseLong(t[3]);
-            long idle = Long.parseLong(t[4]);
-            long iowait = t.length > 5 ? Long.parseLong(t[5]) : 0;
-            long irq = t.length > 6 ? Long.parseLong(t[6]) : 0;
-            long soft = t.length > 7 ? Long.parseLong(t[7]) : 0;
-            long total = user + nice + sys + idle + iowait + irq + soft;
-            long idleAll = idle + iowait;
-            if (cpuTotalPrev < 0) {
-                cpuTotalPrev = total;
-                cpuIdlePrev = idleAll;
-                return -1;
+        int len = s.length();
+        int p = 0;
+        while (p < len && s.charAt(p) > ' ') p++;
+        long[] vals = new long[7];
+        int idx = 0;
+        while (p < len && idx < vals.length) {
+            while (p < len && s.charAt(p) <= ' ') p++;
+            if (p >= len) break;
+            long v = 0;
+            int start = p;
+            while (p < len) {
+                char c = s.charAt(p);
+                if (c < '0' || c > '9') {
+                    if (c <= ' ') break;
+                    return CPU_UNREADABLE;
+                }
+                v = v * 10L + (c - '0');
+                p++;
             }
-            long dt = total - cpuTotalPrev, di = idleAll - cpuIdlePrev;
+            if (p == start) return CPU_UNREADABLE;
+            vals[idx++] = v;
+        }
+        if (idx < 4) return CPU_UNREADABLE;
+        long total = vals[0] + vals[1] + vals[2] + vals[3] + vals[4] + vals[5] + vals[6];
+        long idleAll = vals[3] + vals[4];
+        if (cpuTotalPrev < 0) {
             cpuTotalPrev = total;
             cpuIdlePrev = idleAll;
-            if (dt <= 0) return -1;
-            int busy = (int) Math.round((dt - di) * 100.0 / dt);
-            return Math.max(0, Math.min(100, busy));
-        } catch (NumberFormatException e) {
-            return CPU_UNREADABLE;
+            return -1;
         }
+        long dt = total - cpuTotalPrev, di = idleAll - cpuIdlePrev;
+        cpuTotalPrev = total;
+        cpuIdlePrev = idleAll;
+        if (dt <= 0) return -1;
+        int busy = (int) Math.round((dt - di) * 100.0 / dt);
+        return Math.max(0, Math.min(100, busy));
     }
 
     /** Busy percent from cpuidle time (microseconds) across the cores. -1 until the second sample. */

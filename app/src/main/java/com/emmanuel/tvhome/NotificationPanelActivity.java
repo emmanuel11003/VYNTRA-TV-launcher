@@ -326,6 +326,8 @@ public final class NotificationPanelActivity extends Activity implements GuardRe
     protected void onDestroy() {
         super.onDestroy();
         if (morph != null) morph.cancelAndReset();
+        iconCache.clear();
+        labelCache.clear();
     }
 
     @Override

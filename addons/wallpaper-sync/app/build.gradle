@@ -12,6 +12,7 @@ android {
         targetSdk 34
         versionCode 1
         versionName '1.0'
+        resourceConfigurations += ['en']
     }
 
     dependenciesInfo {
@@ -46,6 +47,52 @@ android {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
+}
+
+def wsBuildTools = "${android.sdkDirectory}/build-tools/${android.buildToolsVersion}"
+def wsExe = { String name -> org.gradle.internal.os.OperatingSystem.current().isWindows() ? (name == 'apksigner' ? "${name}.bat" : "${name}.exe") : name }
+tasks.register('optimizeReleaseApk') {
+    def apkDir = layout.buildDirectory.dir('outputs/apk/release')
+    def work = layout.buildDirectory.dir('v6opt')
+    inputs.file(apkDir.map { it.file('app-release.apk') })
+    outputs.file(apkDir.map { it.file("wallpapersync-v${android.defaultConfig.versionName}-release.apk") })
+    doLast {
+        def bt = wsBuildTools
+        def w = work.get().asFile
+        w.mkdirs()
+        def src = apkDir.get().file('app-release.apk').asFile
+        def opt = new File(w, 'optimized.apk')
+        def aligned = new File(w, 'aligned.apk')
+        def out = outputs.files.singleFile
+        def run = { List<String> cmd ->
+            def p = cmd.execute()
+            def err = new StringBuffer(), std = new StringBuffer()
+            p.consumeProcessOutput(std, err)
+            if (p.waitFor() != 0) throw new GradleException("${cmd[0]} failed:\n${std}${err}")
+        }
+        def trimmed = new File(w, 'trimmed.apk')
+        java.nio.file.Files.copy(src.toPath(), trimmed.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+        def zfs = java.nio.file.FileSystems.newFileSystem(trimmed.toPath(), (ClassLoader) null)
+        try {
+            ['META-INF/version-control-info.textproto', 'META-INF/com/android/build/gradle/app-metadata.properties'].each { n ->
+                java.nio.file.Files.deleteIfExists(zfs.getPath(n))
+            }
+        } finally { zfs.close() }
+        run(["${bt}/${wsExe('aapt2')}", 'optimize', '--collapse-resource-names', '--deduplicate-entry-values',
+             '-o', opt.absolutePath, trimmed.absolutePath])
+        run(["${bt}/${wsExe('zipalign')}", '-f', '-p', '-z', '4', opt.absolutePath, aligned.absolutePath])
+        def sc = android.signingConfigs.debug
+        run(["${bt}/${wsExe('apksigner')}", 'sign', '--v1-signing-enabled', 'false', '--v2-signing-enabled', 'true',
+             '--v3-signing-enabled', 'false', '--ks', sc.storeFile.absolutePath, '--ks-pass', "pass:${sc.storePassword}",
+             '--key-pass', "pass:${sc.keyPassword}", '--ks-key-alias', sc.keyAlias, '--out', out.absolutePath, aligned.absolutePath])
+        run(["${bt}/${wsExe('apksigner')}", 'verify', out.absolutePath])
+        logger.lifecycle("Wallpaper Sync v${android.defaultConfig.versionName}: ${out} (${out.length()} bytes, gate 40960)")
+        if (out.length() >= 40960) throw new GradleException("APK size gate exceeded: ${out.length()} >= 40960 bytes")
+    }
+}
+afterEvaluate {
+    tasks.named('assembleRelease') { finalizedBy 'optimizeReleaseApk' }
+    tasks.named('optimizeReleaseApk') { dependsOn 'packageRelease' }
 }
 
 dependencies {

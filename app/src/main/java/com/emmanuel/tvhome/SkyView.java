@@ -36,8 +36,8 @@ public class SkyView extends View {
         return false;
     }
 
-    private static final int TEX_W = 480;
-    private static final int TEX_H = 270;
+    private static final int TEX_W = 240;
+    private static final int TEX_H = 135;
 
     /** Opacity of the whole backdrop, 0 to 255, from sky_intensity. */
     private int intensity;
@@ -46,6 +46,7 @@ public class SkyView extends View {
     private BitmapDrawable drawable;
     private Canvas offscreenCanvas;
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Calendar calendar = Calendar.getInstance();
 
     public SkyView(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
@@ -98,8 +99,8 @@ public class SkyView extends View {
     }
 
     private void render(boolean force) {
-        Calendar now = Calendar.getInstance();
-        int minute = Sky.minuteOfDay(now.get(Calendar.HOUR_OF_DAY), now.get(Calendar.MINUTE));
+        calendar.setTimeInMillis(System.currentTimeMillis());
+        int minute = Sky.minuteOfDay(calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE));
         if (!force && minute == lastMinute) return;
         lastMinute = minute;
 
@@ -132,6 +133,7 @@ public class SkyView extends View {
         if (drawable == null) {
             drawable = new BitmapDrawable(getResources(), texture);
             drawable.setGravity(Gravity.FILL);
+            drawable.setFilterBitmap(true);
             setBackground(drawable);
         }
         invalidate();

@@ -7,7 +7,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
-import android.graphics.Color;
 import android.graphics.Typeface;
 import android.os.Build;
 import android.os.Bundle;
@@ -25,6 +24,14 @@ import androidx.dynamicanimation.animation.SpringForce;
 
 /** TV-first UI for Wallpaper Sync: displays the Wi-Fi URL, QR code, pairing PIN, and status. */
 public class MainActivity extends Activity {
+    private static final int COLOR_BG = 0xFF0D1420;
+    private static final int COLOR_TEXT_PRIMARY = 0xFFEDF3F8;
+    private static final int COLOR_TEXT_SUB = 0xFF93A6BD;
+    private static final int COLOR_TEXT_MUTED = 0xFFB6C5D6;
+    private static final int COLOR_ACCENT = 0xFF5BA4CF;
+    private static final int COLOR_OK = 0xFF59C18E;
+    private static final int COLOR_ERR = 0xFFF5B0B0;
+
     private TextView statusBadge;
     private TextView urlText;
     private TextView pinText;
@@ -66,6 +73,7 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(buildLayout());
+        getWindow().setBackgroundDrawable(null);
         startForegroundService(new Intent(this, SyncServerService.class));
     }
 
@@ -99,7 +107,7 @@ public class MainActivity extends Activity {
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.HORIZONTAL);
-        root.setBackgroundColor(Color.parseColor("#0D1420"));
+        root.setBackgroundColor(COLOR_BG);
         root.setPadding(pad, pad, pad, pad);
         root.setGravity(Gravity.CENTER_VERTICAL);
 
@@ -112,14 +120,14 @@ public class MainActivity extends Activity {
 
         TextView title = new TextView(this);
         title.setText(R.string.app_name);
-        title.setTextColor(Color.parseColor("#EDF3F8"));
+        title.setTextColor(COLOR_TEXT_PRIMARY);
         title.setTextSize(30);
         title.setTypeface(Typeface.DEFAULT_BOLD);
         left.addView(title);
 
         TextView sub = new TextView(this);
         sub.setText(R.string.subtitle);
-        sub.setTextColor(Color.parseColor("#93A6BD"));
+        sub.setTextColor(COLOR_TEXT_SUB);
         sub.setTextSize(15);
         sub.setPadding(0, Math.round(4 * d), 0, Math.round(18 * d));
         left.addView(sub);
@@ -132,19 +140,19 @@ public class MainActivity extends Activity {
 
         TextView scanHint = new TextView(this);
         scanHint.setText(R.string.scan_hint);
-        scanHint.setTextColor(Color.parseColor("#B6C5D6"));
+        scanHint.setTextColor(COLOR_TEXT_MUTED);
         scanHint.setTextSize(14);
         left.addView(scanHint);
 
         urlText = new TextView(this);
-        urlText.setTextColor(Color.parseColor("#5BA4CF"));
+        urlText.setTextColor(COLOR_ACCENT);
         urlText.setTextSize(24);
         urlText.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
         urlText.setPadding(0, Math.round(6 * d), 0, Math.round(6 * d));
         left.addView(urlText);
 
         pinText = new TextView(this);
-        pinText.setTextColor(Color.parseColor("#EDF3F8"));
+        pinText.setTextColor(COLOR_TEXT_PRIMARY);
         pinText.setTextSize(18);
         pinText.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
         pinText.setPadding(0, 0, 0, Math.round(14 * d));
@@ -152,19 +160,19 @@ public class MainActivity extends Activity {
 
         bridgeWarning = new TextView(this);
         bridgeWarning.setText(R.string.launcher_missing);
-        bridgeWarning.setTextColor(Color.parseColor("#F5B0B0"));
+        bridgeWarning.setTextColor(COLOR_ERR);
         bridgeWarning.setTextSize(14);
         bridgeWarning.setPadding(0, 0, 0, Math.round(12 * d));
         bridgeWarning.setVisibility(View.GONE);
         left.addView(bridgeWarning);
 
         homeStatus = new TextView(this);
-        homeStatus.setTextColor(Color.parseColor("#B6C5D6"));
+        homeStatus.setTextColor(COLOR_TEXT_MUTED);
         homeStatus.setTextSize(14);
         left.addView(homeStatus);
 
         ssStatus = new TextView(this);
-        ssStatus.setTextColor(Color.parseColor("#B6C5D6"));
+        ssStatus.setTextColor(COLOR_TEXT_MUTED);
         ssStatus.setTextSize(14);
         ssStatus.setPadding(0, Math.round(4 * d), 0, Math.round(18 * d));
         left.addView(ssStatus);
@@ -223,7 +231,7 @@ public class MainActivity extends Activity {
         Button b = new Button(this);
         b.setText(text);
         b.setAllCaps(false);
-        b.setTextColor(Color.parseColor("#EDF3F8"));
+        b.setTextColor(COLOR_TEXT_PRIMARY);
         b.setBackgroundResource(R.drawable.btn_bg);
         b.setFocusable(true);
         b.setFocusableInTouchMode(false);
@@ -266,18 +274,18 @@ public class MainActivity extends Activity {
         if (running && ip != null) {
             String url = "http://" + ip + ":" + port;
             statusBadge.setText(R.string.server_running);
-            statusBadge.setTextColor(Color.parseColor("#59C18E"));
+            statusBadge.setTextColor(COLOR_OK);
             urlText.setText(url);
             qrView.setVisibility(View.VISIBLE);
             qrView.setText(url);
         } else if (ip == null) {
             statusBadge.setText(R.string.no_wifi);
-            statusBadge.setTextColor(Color.parseColor("#F5B0B0"));
+            statusBadge.setTextColor(COLOR_ERR);
             urlText.setText("—");
             qrView.setVisibility(View.INVISIBLE);
         } else {
             statusBadge.setText(R.string.server_stopped);
-            statusBadge.setTextColor(Color.parseColor("#93A6BD"));
+            statusBadge.setTextColor(COLOR_TEXT_SUB);
             urlText.setText("http://" + ip + ":" + port);
             qrView.setVisibility(View.INVISIBLE);
         }

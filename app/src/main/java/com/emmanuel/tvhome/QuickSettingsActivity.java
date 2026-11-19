@@ -3,18 +3,12 @@ package com.emmanuel.tvhome;
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
-import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.view.KeyEvent;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
-
-import androidx.dynamicanimation.animation.DynamicAnimation;
-import androidx.dynamicanimation.animation.SpringAnimation;
-import androidx.dynamicanimation.animation.SpringForce;
 
 import java.text.DateFormat;
 import java.util.Date;
@@ -31,7 +25,6 @@ public final class QuickSettingsActivity extends Activity {
         super.attachBaseContext(LauncherLocale.wrap(base));
     }
 
-    private static final String PREFS_NAME = "quick_settings";
     private static volatile int lastAmbientColor = 0xFFFFFFFF;
 
     static void setLastAmbientColor(int color) {

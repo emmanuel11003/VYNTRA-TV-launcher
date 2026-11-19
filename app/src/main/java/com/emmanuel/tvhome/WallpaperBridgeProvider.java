@@ -156,6 +156,7 @@ public class WallpaperBridgeProvider extends ContentProvider {
         }
         long rev = prefs.getLong(Config.SETTINGS_REVISION_KEY, 0L) + 1L;
         ed.putLong(Config.SETTINGS_REVISION_KEY, rev).apply();
+        Config.invalidateCache();
 
         notifyLauncher(ctx);
         return true;
@@ -181,6 +182,7 @@ public class WallpaperBridgeProvider extends ContentProvider {
         }
         long rev = prefs.getLong(Config.SETTINGS_REVISION_KEY, 0L) + 1L;
         ed.putLong(Config.SETTINGS_REVISION_KEY, rev).apply();
+        Config.invalidateCache();
 
         notifyLauncher(ctx);
         return true;

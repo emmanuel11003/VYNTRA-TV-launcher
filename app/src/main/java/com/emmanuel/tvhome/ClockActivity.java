@@ -35,6 +35,7 @@ public class ClockActivity extends Activity {
         justShown = true;
         overridePendingTransition(R.anim.screensaver_enter, R.anim.screensaver_bg_exit);
         setContentView(R.layout.dream_clock);
+        getWindow().setBackgroundDrawable(null);
         ClockFormat.apply(getWindow().getDecorView(), Config.load(this).clockFormat);
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN
                 | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_IMMERSIVE);

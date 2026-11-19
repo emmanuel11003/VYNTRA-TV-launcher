@@ -61,6 +61,17 @@ final class Config {
     private static final String THEME_REVISION_NAME = "theme_revision";
     private static final String THEME_SIGNATURE_KEY = "theme_signature";
 
+    private static final java.util.concurrent.atomic.AtomicLong CACHE_GEN =
+            new java.util.concurrent.atomic.AtomicLong();
+    private static volatile String cachedKey;
+    private static volatile Config cachedConfig;
+
+    static void invalidateCache() {
+        CACHE_GEN.incrementAndGet();
+        cachedKey = null;
+        cachedConfig = null;
+    }
+
     final List<String> dockApps;
     /** Grid apps fill the dock slots dock_apps leaves free (config.xml, fill_dock); on by default, false leaves the slots empty. */
     final boolean fillDock;
@@ -440,6 +451,27 @@ final class Config {
 
     static Config load(Context ctx) {
         Resources res = ctx.getResources();
+        File cacheDir = dir(ctx);
+        boolean cacheMounted = Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState());
+        SharedPreferences cacheChoices = ctx.getSharedPreferences(SETTINGS_NAME, Context.MODE_PRIVATE);
+        File cacheFile = cacheDir != null ? new File(cacheDir, FILE_NAME) : null;
+        File cacheWp = cacheDir != null ? new File(cacheDir, WALLPAPER_NAME) : null;
+        File cacheWpDir = cacheDir != null ? new File(cacheDir, "wallpapers") : null;
+        File cacheDefWp = new File(ctx.getFilesDir(), DEFAULT_WALLPAPER_NAME);
+        String localeTag = res.getConfiguration().getLocales().isEmpty()
+                ? "" : res.getConfiguration().getLocales().get(0).toLanguageTag();
+        String key = CACHE_GEN.get() + "|" + cacheMounted + "|"
+                + (cacheDir != null ? cacheDir.getAbsolutePath() : "") + "|"
+                + cacheChoices.getLong(SETTINGS_REVISION_KEY, 0L) + "|"
+                + cacheChoices.getString(WALLPAPER_CHOICE_KEY, "") + "|"
+                + (cacheFile != null ? cacheFile.lastModified() + ":" + cacheFile.length() : "") + "|"
+                + (cacheWp != null ? cacheWp.lastModified() + ":" + cacheWp.length() : "") + "|"
+                + (cacheWpDir != null ? cacheWpDir.lastModified() : 0L) + "|"
+                + cacheDefWp.lastModified() + ":" + cacheDefWp.length() + "|"
+                + localeTag;
+        if (key.equals(cachedKey) && cachedConfig != null) {
+            return cachedConfig;
+        }
         List<String> dock = new ArrayList<>(Arrays.asList(res.getStringArray(R.array.dock_apps)));
         boolean fillDock = res.getBoolean(R.bool.fill_dock);
         List<String> hidden = new ArrayList<>(Arrays.asList(res.getStringArray(R.array.hidden_apps)));
@@ -768,7 +800,7 @@ final class Config {
         Festival festival = json == null ? Festival.NONE : Festival.parse(festivalName(json),
                 string(json, "festival_until", ""), string(json, "greeting", ""), string(json, "accent_color", ""));
 
-        return new Config(dock, fillDock, hidden, libraryApps, libraryExcludedApps, liveTv, liveTvAction, liveTvInputId, packageMap(launchActions), packageMap(appLabels),
+        Config result = new Config(dock, fillDock, hidden, libraryApps, libraryExcludedApps, liveTv, liveTvAction, liveTvInputId, packageMap(launchActions), packageMap(appLabels),
                 packageMap(appBanners), panelService, panelAction, panelExtra, coocaaSources, inputAction, inputSources, inputUriScheme, Math.max(1, columns),
                 Math.max(0, rowsBelow), animations, advancedEffects, shamsi, greetingName, moduleCards, reducedMotion, bootToLiveTv,
                 openOnStartChoice, dockTitle, dockRow, topMenu, launcherSettingsButton, reorderButton, showNetworkPill, showInputsPill,
@@ -783,6 +815,9 @@ final class Config {
                 Math.max(0, Math.min(90, clockWallpaperDim)), clockGlow, glassStyle, singleRow && dockRow, dockBandAll, lunar, lunarOffset,
                 dateBelowClock, vpnPill, locale, powerOnHomeAlways, inputsConnectedOnly, inputsCecStateOnly,
                 Math.max(0, Math.min(600, openOnStartNetworkWait)), openOnStartOnWake, iconOnlyVpn, clockFormat, backOpensClock, glowSnap, animationScale);
+        cachedConfig = result;
+        cachedKey = key;
+        return result;
     }
 
     /**

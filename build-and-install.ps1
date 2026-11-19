@@ -37,8 +37,8 @@ if ($env:SKIP_BUILD -ne '1') {
 
     .\gradlew.bat assembleRelease -q --console=plain
     if ($LASTEXITCODE -ne 0) { throw 'Gradle build failed' }
-} elseif (-not (Test-Path 'app\build\outputs\apk\release\app-release.apk')) {
-    throw 'SKIP_BUILD=1 but there is no app\build\outputs\apk\release\app-release.apk; build it first (tools\docker-build.ps1)'
+} elseif (-not (Test-Path 'app\build\outputs\apk\release\tvhome-v7.0-release.apk') -and -not (Test-Path 'app\build\outputs\apk\release\app-release.apk')) {
+    throw 'SKIP_BUILD=1 but there is no release APK (tvhome-v7.0-release.apk or app-release.apk); build it first (tools\docker-build.ps1)'
 }
 
 $py = '..\tools\venv\Scripts\python.exe'
@@ -68,7 +68,7 @@ if (-not $StockLauncher) {
 Write-Host "Stock launcher: $StockLauncher"
 $disableStock = if ($StockLauncher -eq 'none') { 'echo stock launcher left alone' } else { "pm disable-user --user 0 $StockLauncher" }
 
-$apk = 'app\build\outputs\apk\release\app-release.apk'
+$apk = if (Test-Path 'app\build\outputs\apk\release\tvhome-v7.0-release.apk') { 'app\build\outputs\apk\release\tvhome-v7.0-release.apk' } else { 'app\build\outputs\apk\release\app-release.apk' }
 & $py -I ..\tools\b64push.py $apk /data/local/tmp/tvhome.apk
 if ($LASTEXITCODE -ne 0) { throw 'APK upload failed' }
 $out = & $py -I ..\tools\tv.py 'pm install -r /data/local/tmp/tvhome.apk; rm -f /data/local/tmp/tvhome.apk'

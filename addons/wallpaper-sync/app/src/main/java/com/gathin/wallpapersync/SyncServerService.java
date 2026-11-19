@@ -24,6 +24,7 @@ public class SyncServerService extends Service {
     private static final int DEFAULT_PORT = 8765;
     private static final String PREFS = "wallpaper_sync";
     private static final String KEY_PIN = "pairing_pin";
+    private static final SecureRandom RNG = new SecureRandom();
 
     private final IBinder binder = new LocalBinder();
     private WallpaperHttpServer server;
@@ -78,6 +79,7 @@ public class SyncServerService extends Service {
         } catch (IOException e) {
             lastError = e.getMessage();
             server = null;
+            stopSelf();
         }
         notifyUi();
     }
@@ -156,7 +158,7 @@ public class SyncServerService extends Service {
     }
 
     private static String generatePin() {
-        int num = new SecureRandom().nextInt(10_000);
+        int num = RNG.nextInt(10_000);
         return String.format(Locale.ROOT, "%04d", num);
     }
 

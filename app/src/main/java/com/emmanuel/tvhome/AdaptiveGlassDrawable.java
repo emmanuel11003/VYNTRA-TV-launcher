@@ -24,6 +24,7 @@ final class AdaptiveGlassDrawable extends Drawable {
     private final boolean oval;
     private final boolean stateful;
     private boolean focused;
+    private LinearGradient unfocusedShader;
 
     AdaptiveGlassDrawable(int initialAmbientColor, float density, float radiusPx, boolean oval, boolean stateful) {
         this.density = density;
@@ -65,6 +66,10 @@ final class AdaptiveGlassDrawable extends Drawable {
         rect.set(bounds);
         float halfStroke = 0.5f * density;
         rect.inset(halfStroke, halfStroke);
+        unfocusedShader = (bounds.width() > 0 && bounds.height() > 0)
+                ? new LinearGradient(bounds.left, bounds.top, bounds.left, bounds.bottom,
+                        0x2EFFFFFF, 0x14FFFFFF, Shader.TileMode.CLAMP)
+                : null;
         rebuildShaders(bounds);
     }
 
@@ -76,8 +81,7 @@ final class AdaptiveGlassDrawable extends Drawable {
             rim.setColor(0xFFFFFFFF);
         } else {
             fill.setColor(0xFFFFFFFF);
-            fill.setShader(new LinearGradient(bounds.left, bounds.top, bounds.left, bounds.bottom,
-                    0x2EFFFFFF, 0x14FFFFFF, Shader.TileMode.CLAMP));
+            fill.setShader(unfocusedShader);
             rim.setColor(0x38FFFFFF);
         }
     }

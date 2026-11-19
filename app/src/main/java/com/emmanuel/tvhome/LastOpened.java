@@ -78,8 +78,7 @@ final class LastOpened {
         if (!hasUsageStatsPermission(ctx)) return;
         lastSyncAt = started;
         syncing = true;
-        Thread t = new Thread(() -> {
-            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND);
+        LauncherExecutors.io().execute(() -> {
             try {
                 UsageStatsManager usm = (UsageStatsManager) ctx.getSystemService(Context.USAGE_STATS_SERVICE);
                 if (usm == null) return;
@@ -107,9 +106,7 @@ final class LastOpened {
             } finally {
                 syncing = false;
             }
-        }, "TvHome-UsageStatsSync");
-        t.setDaemon(true);
-        t.start();
+        });
     }
 
     /** Milliseconds since the epoch, or 0 when Home never opened the app. */

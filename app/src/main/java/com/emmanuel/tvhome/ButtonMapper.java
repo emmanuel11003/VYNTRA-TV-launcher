@@ -42,6 +42,7 @@ public final class ButtonMapper {
     private static final String PUBLIC_BACKUP_DIR = "CleanYourTV";
     private static final Object BACKUP_LOCK = new Object();
     private static volatile boolean restoredChecked;
+    private static volatile Map<Integer, String> cachedMappings;
     public static final String ACTION_QUICK_SETTINGS = "action:quick_settings";
     public static final String ACTION_NOTIFICATIONS = "action:notifications";
     public static final String ACTION_INPUTS = "action:inputs";
@@ -101,22 +102,19 @@ public final class ButtonMapper {
     /** True when the given key code has a non-protected custom mapping stored. */
     public static boolean isMapped(Context ctx, int keyCode) {
         if (isProtectedKey(keyCode)) return false;
-        ensureRestored(ctx);
-        SharedPreferences prefs = ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        return prefs.contains("kc_" + keyCode);
+        return getCachedMappings(ctx).containsKey(keyCode);
     }
 
     /** Returns the mapped target package or action string for a key code, or null when unmapped. */
     public static String getMapping(Context ctx, int keyCode) {
         if (isProtectedKey(keyCode)) return null;
-        ensureRestored(ctx);
-        SharedPreferences prefs = ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        return prefs.getString("kc_" + keyCode, null);
+        return getCachedMappings(ctx).get(keyCode);
     }
 
     /** Stores or clears a custom target for a key code and persists the external backup. */
     public static void setMapping(Context ctx, int keyCode, String target) {
         ensureRestored(ctx);
+        final Map<Integer, String> snapshot;
         synchronized (BACKUP_LOCK) {
             SharedPreferences prefs = ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
             SharedPreferences.Editor editor = prefs.edit().putBoolean(KEY_USER_CLEARED, false);
@@ -126,46 +124,57 @@ public final class ButtonMapper {
                 editor.putString("kc_" + keyCode, target);
             }
             editor.apply();
-            writeBackupMappings(ctx, collectMappings(prefs));
+            snapshot = Collections.unmodifiableMap(collectMappings(prefs));
+            cachedMappings = snapshot;
         }
+        final Context appCtx = ctx.getApplicationContext();
+        LauncherExecutors.io().execute(() -> {
+            synchronized (BACKUP_LOCK) {
+                writeBackupMappings(appCtx, snapshot);
+            }
+        });
     }
 
     /** Counts how many keys currently have custom mappings saved. */
     public static int getMappedCount(Context ctx) {
-        ensureRestored(ctx);
-        SharedPreferences prefs = ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        int count = 0;
-        for (String key : prefs.getAll().keySet()) {
-            if (key.startsWith("kc_")) count++;
-        }
-        return count;
+        return getCachedMappings(ctx).size();
     }
 
     /** Lists all key codes that currently have custom mappings saved. */
     public static List<Integer> getAllMappedKeys(Context ctx) {
-        ensureRestored(ctx);
-        SharedPreferences prefs = ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        List<Integer> keys = new ArrayList<>();
-        for (String key : prefs.getAll().keySet()) {
-            if (key.startsWith("kc_")) {
-                try {
-                    keys.add(Integer.parseInt(key.substring("kc_".length())));
-                } catch (NumberFormatException ignored) {}
-            }
-        }
-        return keys;
+        return new ArrayList<>(getCachedMappings(ctx).keySet());
     }
 
     /** Removes every custom button mapping from preferences and clears external backups. */
     public static void clearAll(Context ctx) {
         synchronized (BACKUP_LOCK) {
             restoredChecked = true;
+            cachedMappings = Collections.emptyMap();
             ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                     .edit()
                     .clear()
                     .putBoolean(KEY_USER_CLEARED, true)
                     .apply();
-            writeBackupMappings(ctx, Collections.emptyMap());
+        }
+        final Context appCtx = ctx.getApplicationContext();
+        LauncherExecutors.io().execute(() -> {
+            synchronized (BACKUP_LOCK) {
+                writeBackupMappings(appCtx, Collections.emptyMap());
+            }
+        });
+    }
+
+    private static Map<Integer, String> getCachedMappings(Context ctx) {
+        Map<Integer, String> map = cachedMappings;
+        if (map != null) return map;
+        if (ctx == null) return Collections.emptyMap();
+        ensureRestored(ctx);
+        synchronized (BACKUP_LOCK) {
+            if (cachedMappings != null) return cachedMappings;
+            SharedPreferences prefs = ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+            Map<Integer, String> loaded = Collections.unmodifiableMap(collectMappings(prefs));
+            cachedMappings = loaded;
+            return loaded;
         }
     }
 

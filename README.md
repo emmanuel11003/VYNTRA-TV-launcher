@@ -64,7 +64,7 @@ A standalone, 100% offline Android TV / Google TV launcher (`minSdk 26`, `target
   - Independent **Home Wallpaper** and **Screensaver Wallpaper** pickers listing the built-in default wallpaper alongside theme wallpapers, device storage (`Pictures`, `Download`, `Wallpapers`), and local `Intent.ACTION_GET_CONTENT` imports (up to `15 MB` stored in `Config.dir(ctx)`).
   - Supports wallpaper rotation (`WallpaperRotation`), dimming (`wallpaper_dim`), mood filtering (`WallpaperMood`), and `RGB_565` / `ARGB_8888` decoding.
 - **Custom Wallpaper Changer with Phone (`addons/wallpaper-sync`, `com.emmanuel.wallpapersync`)**:
-  - Optional `38,840`-byte companion add-on app (also surfaces as a `"Wi-Fi wallpaper"` Module Card on Home) that lets you push custom wallpapers from **any phone or laptop browser over local Wi-Fi — no ADB required** once installed.
+  - Optional **`37,292`**-byte companion add-on app (also surfaces as a `"Wi-Fi wallpaper"` Module Card on Home) that lets you push custom wallpapers from **any phone or laptop browser over local Wi-Fi — no ADB required** once installed.
   - Starts a pure-Java foreground HTTP server (`WallpaperHttpServer` / `SyncServerService`) on port `8765`, renders a scannable **QR code** (`Qr`, `QrView`) on the TV screen with the LAN URL (`http://<tv-ip>:8765`), and guards uploads with a **4-digit Pairing PIN** (`New PIN` rotation supported on TV).
   - Serves an embedded responsive mobile Web UI (`WebUi`) where your phone can pick **JPG, PNG, or WebP** images (large phone photos > 10 MB are automatically scaled to 4K JPEG client-side in the browser) and apply them as **Set Home**, **Set Screensaver**, **Set Both**, or **Reset Home / Reset Screensaver**.
   - Keeps the core launcher 100% offline: `Wallpaper Sync` validates magic headers (`isSupportedImageHeader`, max `15 MB`) and transfers bytes over local signature-protected `ContentResolver` IPC (`WallpaperBridgeProvider`, `content://com.emmanuel.tvhome.wallpaper_bridge`, broadcast `ACTION_WALLPAPER_UPDATED`).
@@ -106,17 +106,25 @@ A standalone, 100% offline Android TV / Google TV launcher (`minSdk 26`, `target
 - **Memory**: `2048 MB` DDR (`dalvik.vm.heapgrowthlimit = 192m`, `dalvik.vm.heapminfree = 512k`, `dalvik.vm.heapmaxfree = 8m`)
 
 ### Optimizations Applied
-- **Removed `.withLayer()` FBO Churn** (`AppAdapter.Holder`): Eliminated per-focus offscreen FBO texture allocations during `translationZ` animations.
+- **Zero-Allocation Hot Paths & State Caching**:
+  - `Config.load()` revision/file-stat cache (invalidated across `ThemeProvider`, `WallpaperBridgeProvider`, and `LauncherSettingsActivity`) and `ButtonMapper` in-memory key-mapping cache with async external backup writes.
+  - `AdaptiveGlassDrawable` cached unfocused gradient shader, `MainActivity` cached `HERO_META_SPAN` / dock-dot diffing and zero-allocation `/proc/stat` scanner (`cpuFromProcStat`), and `MonthCalendarView` static day labels, cached font metrics, and date-change short-circuit.
+- **Thread Consolidation, GPU/FBO Hygiene & Memory**:
+  - Removed `.withLayer()` FBO churn in `AppAdapter.Holder` and `ClockScene.moveClock()`; replaced `ArgbEvaluator` object boxing with primitive channel math in `MainActivity` and `ClockScene`.
+  - Consolidated `LastOpened` usage sync and `ClockScene` screensaver wallpaper decode onto shared `LauncherExecutors.io()`, converted screensaver wallpaper bitmaps to `Bitmap.Config.HARDWARE` textures, cleared `ClockActivity` window overdraw, and shrunk `SkyView` backdrop texture by 75% to `240×135`.
+  - Added `android:baselineAligned="false"` across Quick Settings tile rows, cleared `NotificationPanelActivity` icon/label caches on destroy, and removed unused dead drawables/layouts (`0` lint errors, `Overdraw` down `14 → 10`, `DisableBaselineAlignment` `0`).
 - **Async `HeroArt` & Sliding-Window Blur** (`HeroArt`, `MainActivity`): Offloaded `HeroArt.from(...)` to `LauncherExecutors.io()`, reused static `PX`/`TEMP` scratch buffers, and replaced the `O(span)` inner blur loop with an `O(1)` sliding window.
-- **240×135 Ambient & Scrim Bitmaps + Primitive Animator** (`MainActivity`): Reduced `scrimDrawable()` and `setAmbient()` bitmaps by 75% with `setFilterBitmap(true)`, skipped redundant tint invalidations via `lastAmbientTint`, and replaced `ArgbEvaluator` object boxing with primitive `ValueAnimator.ofFloat(0f, 1f)`.
-- **Zero-Allocation `/proc/meminfo` Parser** (`MemInfo`, `MainActivity`): Replaced regex `.split("\\s+")` in `MemInfo.kb(String)` with a digit scanner and stopped reading `/proc/meminfo` as soon as `MemTotal:` and `MemAvailable:` are parsed.
-- **APK Size & Font Optimization**: Restored trimmed `83,876`-byte `outfit.ttf`, R8 obfuscation/shrinking (`Log.d`/`Log.i` stripped), `aapt2 optimize --deduplicate-entry-values`, Zopfli recompression, and v2-only APK signing.
+- **240×135 Ambient & Scrim Bitmaps** (`MainActivity`): Reduced `scrimDrawable()` and `setAmbient()` bitmaps by 75% with `setFilterBitmap(true)`, skipped redundant tint invalidations via `lastAmbientTint`.
+- **APK Size & Wallpaper Sync Add-on Optimization**:
+  - Restored trimmed `83,876`-byte `outfit.ttf`, R8 obfuscation/shrinking (`Log.d`/`Log.i` stripped), `aapt2 optimize --collapse-resource-names --deduplicate-entry-values`, Zopfli recompression, and v2-only APK signing on **both** `tvhome-v7.0-release.apk` and `wallpapersync-v1.0-release.apk`.
+  - Hardened `Wallpaper Sync` (`addons/wallpaper-sync`) with a bounded `ThreadPoolExecutor` (`0..4` daemon workers), `SO_REUSEADDR` port `8765` reuse, cached `WebUi` UTF-8 bytes & HTTP line buffer, constant-time `MessageDigest.isEqual` PIN check, `stopSelf()` bind-failure safety, pre-parsed color constants, zero window overdraw, and single-`Path` coalesced `QrView` rendering (`38,840` B → **`37,292` B**).
 
 ### Observed Benchmark (`emulator-5554`, `cmd package compile -m speed -f com.emmanuel.tvhome`)
 
 | Metric | Before Optimization | After Optimization |
 |---|---|---|
-| Release APK Size | `587,057` bytes | **`685,435` bytes** (`35,461` B under `720,896` B gate with bundled `default_wallpaper.jpg`; `578,865` B code-only) |
+| Release APK Size | `587,057` bytes | **`689,531` bytes** (`31,365` B under `720,896` B gate with bundled `default_wallpaper.jpg`) |
+| Wallpaper Sync APK Size | `38,840` bytes | **`37,292` bytes** (`3,668` B under `40,960` B gate; `0` lint errors, `3/3` tests) |
 | Unit Tests & Lint | `48` suites / `343` tests | **`48` suites / `343` tests passed, `0` lint errors** |
 | Active Navigation Frames (`gfxinfo`) | `48` frames | **`90` frames** |
 | Janky Frames / Legacy Jank | `37 (77.08%)` / `47 (97.92%)` | **`1 (1.11%)` / `0 (0.00%)`** |
@@ -172,7 +180,7 @@ Both APKs must share the same signing certificate so `com.emmanuel.tvhome.permis
 ```powershell
 cd addons\wallpaper-sync
 .\gradlew.bat --no-daemon testReleaseUnitTest lintRelease assembleRelease
-adb install -r app\build\outputs\apk\release\app-release.apk
+adb install -r app\build\outputs\apk\release\wallpapersync-v1.0-release.apk
 ```
 
 ---

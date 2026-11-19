@@ -770,6 +770,7 @@ public final class LauncherSettingsActivity extends Activity {
         setResult(RESULT_OK);
         choices.edit().putLong(Config.SETTINGS_REVISION_KEY,
                 choices.getLong(Config.SETTINGS_REVISION_KEY, 0) + 1).apply();
+        Config.invalidateCache();
     }
 
     private void setAdvanced(boolean enabled) {

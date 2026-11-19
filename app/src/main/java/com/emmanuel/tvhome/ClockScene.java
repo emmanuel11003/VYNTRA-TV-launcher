@@ -1,6 +1,5 @@
 package com.emmanuel.tvhome;
 
-import android.animation.ArgbEvaluator;
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
@@ -53,8 +52,8 @@ final class ClockScene {
     private final MonthCalendarView calendar;
     private final View calendarDivider;
     private final GradientDrawable glow;
-    private final ArgbEvaluator colorMix = new ArgbEvaluator();
     private final int[] glowColors = new int[3];
+    private Bitmap currentWallpaperBitmap;
     private boolean started;
     private final Runnable startEnter = new Runnable() {
         @Override
@@ -149,7 +148,15 @@ final class ClockScene {
         handler.removeCallbacksAndMessages(null);   // the tick and any glow steps still queued
         clockRefresh.stop();
         content.animate().cancel();
+        content.setLayerType(View.LAYER_TYPE_NONE, null);
         wallpaperGeneration++;   // a decode still running must not attach its picture to a stopped scene
+        wallpaperShown = false;
+        ambient.setImageDrawable(null);
+        Bitmap old = currentWallpaperBitmap;
+        currentWallpaperBitmap = null;
+        if (old != null && !old.isRecycled() && old.getConfig() != Bitmap.Config.HARDWARE) {
+            old.recycle();
+        }
     }
 
     /**
@@ -276,22 +283,31 @@ final class ClockScene {
         DisplayMetrics dm = res.getDisplayMetrics();
         int w = dm.widthPixels, h = dm.heightPixels;
         int generation = ++wallpaperGeneration;
-        new Thread(() -> {
+        LauncherExecutors.io().execute(() -> {
             Bitmap bmp = decode(file, w, h);
             if (bmp == null) return;
             handler.post(() -> {
                 if (generation != wallpaperGeneration || wallpaperShown) {
-                    bmp.recycle();   // stopped meanwhile (or already shown): this picture was never attached
+                    if (bmp.getConfig() != Bitmap.Config.HARDWARE && !bmp.isRecycled()) {
+                        bmp.recycle();   // stopped meanwhile (or already shown): this picture was never attached
+                    }
                     return;
                 }
+                Bitmap old = currentWallpaperBitmap;
+                currentWallpaperBitmap = bmp;
                 wallpaperShown = true;
                 // As the image, not the background: a background is stretched to the view, so a picture of
                 // another shape than the screen would be distorted. centerCrop scales and crops it like Home.
                 ambient.setBackground(null);
                 ambient.setImageDrawable(new LayerDrawable(new Drawable[]{
                         new BitmapDrawable(res, bmp), new ColorDrawable(shade)}));
+                if (old != null && old != bmp && !old.isRecycled() && old.getConfig() != Bitmap.Config.HARDWARE) {
+                    ambient.postDelayed(() -> {
+                        if (!old.isRecycled()) old.recycle();
+                    }, 500L);
+                }
             });
-        }, "clock-wallpaper").start();
+        });
     }
 
     /** WallpaperPlayer's decode: sampled and scaled down to cover the screen, never bigger than 4K. */
@@ -313,7 +329,14 @@ final class ClockScene {
                 options.inTargetDensity = scale[1];
             }
             options.inPreferredConfig = Bitmap.Config.RGB_565;
-            return BitmapFactory.decodeFile(file.getPath(), options);
+            Bitmap decoded = BitmapFactory.decodeFile(file.getPath(), options);
+            if (decoded == null) return null;
+            Bitmap gpu = decoded.copy(Bitmap.Config.HARDWARE, false);
+            if (gpu != null) {
+                decoded.recycle();
+                return gpu;
+            }
+            return decoded;
         } catch (Exception | OutOfMemoryError failure) {
             return null;
         }
@@ -344,9 +367,9 @@ final class ClockScene {
     }
 
     private void moveClock() {
-        content.animate().alpha(0f).setDuration(900).withLayer().withEndAction(() -> {
+        content.animate().alpha(0f).setDuration(900).withEndAction(() -> {
             placeClock();
-            content.animate().alpha(1f).setDuration(1200).withLayer().start();
+            content.animate().alpha(1f).setDuration(1200).start();
         }).start();
     }
 
@@ -372,9 +395,17 @@ final class ClockScene {
         int to = PALETTE[colorIndex];
         for (int i = 1; i <= GLOW_STEPS; i++) {
             float f = (float) i / GLOW_STEPS;
-            int stepColor = (int) colorMix.evaluate(f, from, to);
+            int stepColor = lerpArgb(from, to, f);
             handler.postDelayed(() -> setGlow(stepColor), i * GLOW_STEP_MS);
         }
+    }
+
+    private static int lerpArgb(int from, int to, float f) {
+        int a = Math.round(((from >>> 24) & 0xFF) + (((to >>> 24) & 0xFF) - ((from >>> 24) & 0xFF)) * f);
+        int r = Math.round(((from >>> 16) & 0xFF) + (((to >>> 16) & 0xFF) - ((from >>> 16) & 0xFF)) * f);
+        int g = Math.round(((from >>> 8) & 0xFF) + (((to >>> 8) & 0xFF) - ((from >>> 8) & 0xFF)) * f);
+        int b = Math.round((from & 0xFF) + ((to & 0xFF) - (from & 0xFF)) * f);
+        return (a << 24) | (r << 16) | (g << 8) | b;
     }
 
     private void setGlow(int color) {

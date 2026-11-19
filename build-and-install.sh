@@ -56,8 +56,8 @@ export PATH="$JAVA_HOME/bin:$PATH"
 # on it too. Forward slashes work everywhere.
 [ -f local.properties ] || echo "sdk.dir=$(printf '%s' "$ANDROID_HOME" | tr '\\' '/')" > local.properties
 ./gradlew assembleRelease -q --console=plain
-elif [ ! -f app/build/outputs/apk/release/app-release.apk ]; then
-  echo "ERROR: SKIP_BUILD=1 but there is no app/build/outputs/apk/release/app-release.apk; build it first (tools/docker-build.sh)." >&2
+elif [ ! -f app/build/outputs/apk/release/tvhome-v7.0-release.apk ] && [ ! -f app/build/outputs/apk/release/app-release.apk ]; then
+  echo "ERROR: SKIP_BUILD=1 but there is no release APK (tvhome-v7.0-release.apk or app-release.apk); build it first (tools/docker-build.sh)." >&2
   exit 1
 fi
 # Which app owns Home differs by build (com.google.android.tvlauncher on Android TV,
@@ -108,7 +108,8 @@ echo "Stock launcher: $STOCK_LAUNCHER"
 HOME_QUERY='cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME'
 if [ "$STOCK_LAUNCHER" = none ]; then DISABLE_STOCK="echo stock launcher left alone"
 else DISABLE_STOCK="pm disable-user --user 0 $STOCK_LAUNCHER"; fi
-APK=app/build/outputs/apk/release/app-release.apk
+APK=app/build/outputs/apk/release/tvhome-v7.0-release.apk
+[ -f "$APK" ] || APK=app/build/outputs/apk/release/app-release.apk
 "$PY" -I ../tools/b64push.py "$APK" /data/local/tmp/tvhome.apk
 # Install on its own: in the batch below a failed install (e.g. "not enough space" on a full /data)
 # would not stop the stock launcher from being disabled.
