@@ -475,6 +475,7 @@
          hidden_apps and offers it as "Add to Home" anyway. Empty (off) by default, so existing setups
          change nothing. -->
     <string-array name="library_excluded_apps" translatable="false">
+        <item>com.emmanuel.wallpapersync</item>
     </string-array>
 
     <!-- Module cards: an app that declares a card (docs/specs/card.md) can stand in for its tile with its own

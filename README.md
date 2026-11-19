@@ -29,16 +29,17 @@ A standalone, 100% offline Android TV / Google TV launcher (`minSdk 26`, `target
 ### 1. tvOS-Style Glass Home & Dock (`MainActivity`, `AppAdapter`, `GlassView`)
 - **Configurable Grid & Frosted Dock**: Supports 4–7 columns, configurable dock opacity (`30%`–`100%`), concentric dock padding (`DockDecoration`, `DockSlots`), and `Order` persistence.
 - **Spring Physics & Ambient Lighting**: Spring-interpolated glass focus highlight (`GlassView` cached in hardware texture layer), `WindowMorph` transitions, `Horizon` ambient brand glow, and async `HeroArt` blurred backdrop (`LauncherExecutors.io()`).
-- **App Library & Hidden Apps**: `AppLibraryDialog` manages apps removed from Home without uninstalling.
+- **App Library & Show / Hide App Cards**: `AppLibraryDialog` and **Launcher Settings → Show / Hide App Cards** (`Config.USER_HIDDEN_APPS_KEY` / `USER_SHOWN_APPS_KEY`) let you show or hide any installed app card on Home without uninstalling.
 - **Long-Press Action on App Cards (`tile_menu` / `MainActivity.onTileLongPress`)**:
   - Holding **OK / `DPAD_CENTER`** or pressing **`KEYCODE_MENU`** on any focused app card opens a contextual glass menu anchored above or below the tile:
     - **Replace with another app** (dock tiles) / **Add to dock** (grid tiles) — enters dock swap mode (`startDockEditFor`).
     - **Move** — picks up the focused tile directly in reorder mode.
     - **Remove from Home** (when `app_library` is enabled) — moves the app to the App Library without uninstalling.
     - **App info** — opens the Android system App Info page (also the direct fallback when `tile_menu` is set to `false`).
+    - **Uninstall** / **Disable** — shows **Uninstall** (`Intent.ACTION_DELETE` + `REQUEST_DELETE_PACKAGES`) for user-installed apps, or **Disable** (opening system App info) for preinstalled system apps.
   - Holding **OK** on the top-bar **Settings** pill opens `HomeMenus.showSettingsMenu` (`Launcher settings`, native vendor settings when present, `Edit dock`, `Rearrange apps`, and `Power menu`).
 - **Usage Tracking**: `LastOpened` records app close timestamps on return to Home and syncs with `UsageStatsManager` (`PACKAGE_USAGE_STATS`) at most once per minute on a background priority thread.
-- **Top Bar Telemetry & Indicators**: Optional live clock (`LiveClockView`, `ClockFormat`: `System` / `12-hour` / `24-hour`), Wi-Fi status color indicator, Inputs pill (`TvInputRouter`), Settings pill, and live RAM / Storage readout (`MemInfo`, `StatsText`).
+- **Top Bar Telemetry & Time Dock (`100%` Opacity, Non-Bold Clock)**: Optional live clock (`LiveClockView` in crisp light/regular weight with `100%` opacity text across greeting, time, seconds, AM/PM, date, and RAM/Storage readout), `ClockFormat` (`System` / `12-hour` / `24-hour`), Wi-Fi status color indicator, and Inputs/Settings pills (`TvInputRouter`).
 
 ### 2. Built-in Quick Settings & Sleep Timer (`QuickSettingsActivity`, `SleepTimer`)
 - Translucent Google TV–style right-side drawer opened via the remote **Settings / Gear** button (`80`, `83`, `KEYCODE_SETTINGS`) or top-bar action:
@@ -64,7 +65,7 @@ A standalone, 100% offline Android TV / Google TV launcher (`minSdk 26`, `target
   - Independent **Home Wallpaper** and **Screensaver Wallpaper** pickers listing the built-in default wallpaper alongside theme wallpapers, device storage (`Pictures`, `Download`, `Wallpapers`), and local `Intent.ACTION_GET_CONTENT` imports (up to `15 MB` stored in `Config.dir(ctx)`).
   - Supports wallpaper rotation (`WallpaperRotation`), dimming (`wallpaper_dim`), mood filtering (`WallpaperMood`), and `RGB_565` / `ARGB_8888` decoding.
 - **Custom Wallpaper Changer with Phone (`addons/wallpaper-sync`, `com.emmanuel.wallpapersync`)**:
-  - Optional **`37,292`**-byte companion add-on app (also surfaces as a `"Wi-Fi wallpaper"` Module Card on Home) that lets you push custom wallpapers from **any phone or laptop browser over local Wi-Fi — no ADB required** once installed.
+  - Optional **`37,236`**-byte companion add-on app (hidden from the Home grid via `hidden_apps` / `library_excluded_apps` and launched directly via **Launcher Settings → Wallpaper → Sync from Phone (Wallpaper Sync)…**) that lets you push custom wallpapers from **any phone or laptop browser over local Wi-Fi — no ADB required** once installed.
   - Starts a pure-Java foreground HTTP server (`WallpaperHttpServer` / `SyncServerService`) on port `8765`, renders a scannable **QR code** (`Qr`, `QrView`) on the TV screen with the LAN URL (`http://<tv-ip>:8765`), and guards uploads with a **4-digit Pairing PIN** (`New PIN` rotation supported on TV).
   - Serves an embedded responsive mobile Web UI (`WebUi`) where your phone can pick **JPG, PNG, or WebP** images (large phone photos > 10 MB are automatically scaled to 4K JPEG client-side in the browser) and apply them as **Set Home**, **Set Screensaver**, **Set Both**, or **Reset Home / Reset Screensaver**.
   - Keeps the core launcher 100% offline: `Wallpaper Sync` validates magic headers (`isSupportedImageHeader`, max `15 MB`) and transfers bytes over local signature-protected `ContentResolver` IPC (`WallpaperBridgeProvider`, `content://com.emmanuel.tvhome.wallpaper_bridge`, broadcast `ACTION_WALLPAPER_UPDATED`).
@@ -117,14 +118,14 @@ A standalone, 100% offline Android TV / Google TV launcher (`minSdk 26`, `target
 - **240×135 Ambient & Scrim Bitmaps** (`MainActivity`): Reduced `scrimDrawable()` and `setAmbient()` bitmaps by 75% with `setFilterBitmap(true)`, skipped redundant tint invalidations via `lastAmbientTint`.
 - **APK Size & Wallpaper Sync Add-on Optimization**:
   - Restored trimmed `83,876`-byte `outfit.ttf`, R8 obfuscation/shrinking (`Log.d`/`Log.i` stripped), `aapt2 optimize --collapse-resource-names --deduplicate-entry-values`, Zopfli recompression, and v2-only APK signing on **both** `tvhome-v7.0-release.apk` and `wallpapersync-v1.0-release.apk`.
-  - Hardened `Wallpaper Sync` (`addons/wallpaper-sync`) with a bounded `ThreadPoolExecutor` (`0..4` daemon workers), `SO_REUSEADDR` port `8765` reuse, cached `WebUi` UTF-8 bytes & HTTP line buffer, constant-time `MessageDigest.isEqual` PIN check, `stopSelf()` bind-failure safety, pre-parsed color constants, zero window overdraw, and single-`Path` coalesced `QrView` rendering (`38,840` B → **`37,292` B**).
+  - Hardened `Wallpaper Sync` (`addons/wallpaper-sync`) with a bounded `ThreadPoolExecutor` (`0..4` daemon workers), `SO_REUSEADDR` port `8765` reuse, cached `WebUi` UTF-8 bytes & HTTP line buffer, constant-time `MessageDigest.isEqual` PIN check, `stopSelf()` bind-failure safety, pre-parsed color constants, zero window overdraw, and single-`Path` coalesced `QrView` rendering (`38,840` B → **`37,236` B**).
 
 ### Observed Benchmark (`emulator-5554`, `cmd package compile -m speed -f com.emmanuel.tvhome`)
 
 | Metric | Before Optimization | After Optimization |
 |---|---|---|
 | Release APK Size | `587,057` bytes | **`689,531` bytes** (`31,365` B under `720,896` B gate with bundled `default_wallpaper.jpg`) |
-| Wallpaper Sync APK Size | `38,840` bytes | **`37,292` bytes** (`3,668` B under `40,960` B gate; `0` lint errors, `3/3` tests) |
+| Wallpaper Sync APK Size | `38,840` bytes | **`37,236` bytes** (`3,724` B under `40,960` B gate; `0` lint errors, `3/3` tests) |
 | Unit Tests & Lint | `48` suites / `343` tests | **`48` suites / `343` tests passed, `0` lint errors** |
 | Active Navigation Frames (`gfxinfo`) | `48` frames | **`90` frames** |
 | Janky Frames / Legacy Jank | `37 (77.08%)` / `47 (97.92%)` | **`1 (1.11%)` / `0 (0.00%)`** |
@@ -146,6 +147,7 @@ A standalone, 100% offline Android TV / Google TV launcher (`minSdk 26`, `target
   - `WRITE_SECURE_SETTINGS` (granted via ADB by installer scripts so `ServiceRepair` restores key helpers)
   - `PACKAGE_USAGE_STATS` (app-op granted via ADB for `LastOpened` timestamps)
   - `BLUETOOTH_CONNECT`, `yandex.tv.permission.ACCESS_TV_SOURCE` (TV input/Bluetooth integration)
+  - `REQUEST_DELETE_PACKAGES` (for the Uninstall option on user-installed apps in Long-Press Action)
   - Signature-protected `${applicationId}.permission.WALLPAPER_SYNC` (local IPC bridge for `addons/wallpaper-sync`; the optional add-on APK holds local LAN `INTERNET`, `ACCESS_NETWORK_STATE`, `ACCESS_WIFI_STATE`, `FOREGROUND_SERVICE_DATA_SYNC`, and `com.emmanuel.tvhome.permission.WALLPAPER_SYNC` — nothing ever leaves your Wi-Fi network)
 
 ---

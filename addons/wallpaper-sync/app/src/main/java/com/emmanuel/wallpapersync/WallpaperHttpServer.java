@@ -1,4 +1,4 @@
-package com.gathin.wallpapersync;
+package com.emmanuel.wallpapersync;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;

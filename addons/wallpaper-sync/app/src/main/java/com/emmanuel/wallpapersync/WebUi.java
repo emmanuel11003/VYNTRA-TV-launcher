@@ -1,4 +1,4 @@
-package com.gathin.wallpapersync;
+package com.emmanuel.wallpapersync;
 
 /** Embedded single-page Web UI served to phones/laptops over local Wi-Fi. */
 final class WebUi {

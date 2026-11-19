@@ -1,4 +1,4 @@
-package com.gathin.wallpapersync;
+package com.emmanuel.wallpapersync;
 
 import android.content.Context;
 import android.net.ConnectivityManager;

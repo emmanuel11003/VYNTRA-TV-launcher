@@ -59,6 +59,7 @@
     <string name="wallpaper_applied">Wallpaper changed</string>
     <string name="wallpaper_theme_default">Theme default</string>
     <string name="wallpaper_custom_browse" translatable="false">Pick image from storage…</string>
+    <string name="wallpaper_sync_open" translatable="false">Sync from Phone (Wallpaper Sync)…</string>
     <string name="wallpaper_folder_hint" translatable="false">Add photos to TV\'s Wallpapers or Pictures folder</string>
     <string name="wallpaper_error" translatable="false">Could not load image: %1$s</string>
     <string name="wallpaper_open_error" translatable="false">Cannot open URI</string>

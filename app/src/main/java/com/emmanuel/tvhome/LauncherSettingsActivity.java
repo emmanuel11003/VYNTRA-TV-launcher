@@ -393,7 +393,8 @@ public final class LauncherSettingsActivity extends Activity {
 
         boolean springFocus = animations && !config.reducedMotion;
         int[] springRows = {
-                R.id.reorderChoice, R.id.buttonMapperChoice, R.id.wallpaperChoice, R.id.chooseWallpaperRow,
+                R.id.reorderChoice, R.id.buttonMapperChoice, R.id.hiddenAppsChoice,
+                R.id.wallpaperChoice, R.id.chooseWallpaperRow,
                 R.id.screensaverRow, R.id.screensaverCalendarRow, R.id.animationsChoice,
                 R.id.advancedChoice, R.id.statsRow, R.id.inputsPillRow,
                 R.id.networkPillRow, R.id.openOnStartChoice, R.id.followThemeChoice,
@@ -472,11 +473,21 @@ public final class LauncherSettingsActivity extends Activity {
         showWallpaperDialog(images, false);
     }
 
+    private Intent wallpaperSyncIntent() {
+        Intent intent = getPackageManager().getLaunchIntentForPackage("com.emmanuel.wallpapersync");
+        if (intent == null) {
+            intent = new Intent()
+                    .setClassName("com.emmanuel.wallpapersync", "com.emmanuel.wallpapersync.MainActivity");
+            if (intent.resolveActivity(getPackageManager()) == null) return null;
+        }
+        return intent;
+    }
+
     private void showWallpaperDialog(List<File> images, boolean forScreensaver) {
         String current = forScreensaver
                 ? choices.getString(Config.SCREENSAVER_WALLPAPER_KEY, null)
                 : choices.getString(Config.WALLPAPER_CHOICE_KEY, null);
-        Intent syncIntent = getPackageManager().getLaunchIntentForPackage("com.emmanuel.wallpapersync");
+        Intent syncIntent = wallpaperSyncIntent();
         boolean hasPhoneSync = syncIntent != null;
         int prefixCount = hasPhoneSync ? 2 : 1;
         int tailCount = forScreensaver ? 0 : 1;
@@ -484,7 +495,7 @@ public final class LauncherSettingsActivity extends Activity {
         String[] labels = new String[totalItems];
         labels[0] = getString(R.string.wallpaper_custom_browse);
         if (hasPhoneSync) {
-            labels[1] = "Sync from phone (Wi-Fi / QR)…";
+            labels[1] = getString(R.string.wallpaper_sync_open);
         }
         for (int i = 0; i < images.size(); i++) {
             File f = images.get(i);
@@ -499,7 +510,7 @@ public final class LauncherSettingsActivity extends Activity {
             labels[totalItems - 1] = getString(R.string.wallpaper_none);
         }
 
-        if (images.isEmpty()) {
+        if (images.isEmpty() && !hasPhoneSync) {
             Toast.makeText(this, R.string.wallpaper_folder_hint, Toast.LENGTH_LONG).show();
         }
 
@@ -526,7 +537,7 @@ public final class LauncherSettingsActivity extends Activity {
                     } else if (hasPhoneSync && which == 1) {
                         try {
                             startActivity(syncIntent);
-                        } catch (ActivityNotFoundException e) {
+                        } catch (ActivityNotFoundException | SecurityException e) {
                             Toast.makeText(this, R.string.not_available, Toast.LENGTH_SHORT).show();
                         }
                     } else if (!forScreensaver && which == totalItems - 1) {

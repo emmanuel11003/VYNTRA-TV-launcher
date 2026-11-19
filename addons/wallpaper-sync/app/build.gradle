@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace 'com.gathin.wallpapersync'
+    namespace 'com.emmanuel.wallpapersync'
     compileSdk 34
 
     defaultConfig {

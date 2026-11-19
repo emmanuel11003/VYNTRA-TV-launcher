@@ -1,4 +1,4 @@
-package com.gathin.wallpapersync;
+package com.emmanuel.wallpapersync;
 
 import org.junit.Test;
 

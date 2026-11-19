@@ -27,4 +27,4 @@ cd addons\wallpaper-sync
 .\gradlew.bat --no-daemon testReleaseUnitTest lintRelease assembleRelease
 ```
 
-The optimized, Zopfli-compressed v2-signed release APK (`37,292` bytes, gate `40,960` B) is written to `addons/wallpaper-sync/app/build/outputs/apk/release/wallpapersync-v1.0-release.apk`.
+The optimized, Zopfli-compressed v2-signed release APK (`37,236` bytes, gate `40,960` B) is written to `addons/wallpaper-sync/app/build/outputs/apk/release/wallpapersync-v1.0-release.apk`.

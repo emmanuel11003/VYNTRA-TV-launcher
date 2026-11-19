@@ -1,4 +1,4 @@
-package com.gathin.wallpapersync;
+package com.emmanuel.wallpapersync;
 
 import android.app.Activity;
 import android.content.BroadcastReceiver;
