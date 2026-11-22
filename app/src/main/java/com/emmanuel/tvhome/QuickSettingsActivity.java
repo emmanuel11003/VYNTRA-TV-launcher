@@ -34,6 +34,8 @@ public final class QuickSettingsActivity extends Activity {
     private View layoutMainPanel;
     private WindowMorph morph;
     private boolean animateTransitions;
+    private boolean animateAppTransitions;
+    private boolean animateScreensaverTransition;
     private int[] settingsKeycodes = new int[0];
     private boolean launchingChild;
     private boolean closingWithMorph;
@@ -43,7 +45,10 @@ public final class QuickSettingsActivity extends Activity {
         super.onCreate(state);
         overridePendingTransition(0, 0);
         Config cfg = Config.load(this);
-        animateTransitions = cfg.animations && !cfg.reducedMotion;
+        boolean baseAnim = cfg.animations && !cfg.reducedMotion;
+        animateTransitions = baseAnim && Config.isAnimEnabled(this, Config.ANIM_WINDOW_MORPH_KEY);
+        animateAppTransitions = baseAnim && Config.isAnimEnabled(this, Config.ANIM_APP_TRANSITIONS_KEY);
+        animateScreensaverTransition = baseAnim && Config.isAnimEnabled(this, Config.ANIM_SCREENSAVER_TRANSITION_KEY);
         settingsKeycodes = cfg.settingsKeycodes;
         setContentView(R.layout.activity_quick_settings);
         ClockFormat.apply(getWindow().getDecorView(), cfg.clockFormat);
@@ -141,7 +146,7 @@ public final class QuickSettingsActivity extends Activity {
         try {
             startActivity(screensaver);
             finish();
-            if (animateTransitions) {
+            if (animateScreensaverTransition) {
                 overridePendingTransition(R.anim.screensaver_enter, R.anim.screensaver_bg_exit);
             } else {
                 overridePendingTransition(0, 0);
@@ -277,7 +282,7 @@ public final class QuickSettingsActivity extends Activity {
     }
 
     private void applyOpenTransition() {
-        if (animateTransitions) {
+        if (animateAppTransitions) {
             overridePendingTransition(R.anim.app_open_enter, R.anim.app_open_exit);
         } else {
             overridePendingTransition(0, 0);
@@ -285,7 +290,7 @@ public final class QuickSettingsActivity extends Activity {
     }
 
     private void applyCloseTransition() {
-        if (animateTransitions) {
+        if (animateAppTransitions) {
             overridePendingTransition(R.anim.app_close_enter, R.anim.app_close_exit);
         } else {
             overridePendingTransition(0, 0);

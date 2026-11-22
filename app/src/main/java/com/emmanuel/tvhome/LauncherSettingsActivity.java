@@ -63,6 +63,37 @@ public final class LauncherSettingsActivity extends Activity {
     private TextView screensaverCalendarSwitch;
     private LinearLayout animationsChoice;
     private TextView animationsSwitch;
+    private final java.util.List<AnimToggleRow> animToggleRows = new java.util.ArrayList<>();
+
+    private static final class AnimToggleRow {
+        final String key;
+        final View row;
+        final TextView badge;
+
+        AnimToggleRow(String key, View row, TextView badge) {
+            this.key = key;
+            this.row = row;
+            this.badge = badge;
+        }
+    }
+
+    private static final String[][] ANIM_TOGGLE_SPECS = {
+            {Config.ANIM_WINDOW_MORPH_KEY, "Window Morph", "Panel bounds & corner morph (Quick Settings, Settings, Notifications, Library)"},
+            {Config.ANIM_APP_TRANSITIONS_KEY, "App Open / Close Transition", "Scale & fade transitions when opening apps or returning Home"},
+            {Config.ANIM_SCREENSAVER_TRANSITION_KEY, "Screensaver Transition", "Fade & zoom transitions entering or exiting the clock screensaver"},
+            {Config.ANIM_BUTTON_SPRINGS_KEY, "Top Bar & Button Springs", "Spring scale physics on top-bar pills, settings rows, and panels"},
+            {Config.ANIM_TILE_FOCUS_KEY, "Tile Focus Spring & Zoom", "Spring scale, card lift, banner zoom, and title slide on app tiles"},
+            {Config.ANIM_LAUNCH_PRESS_KEY, "App Launch Press Feedback", "Press-down & release animation when launching an app tile"},
+            {Config.ANIM_GLASS_PILL_KEY, "Liquid-Glass Focus Pill", "Sliding frosted focus highlight across tiles"},
+            {Config.ANIM_MENU_POPUP_KEY, "Dropdown Menu Spring", "Spring scale, slide, and fade on popup menus"},
+            {Config.ANIM_HOME_ENTRANCE_KEY, "Home Entrance Transition", "Top bar, hero, and grid gather spring animation on Home resume"},
+            {Config.ANIM_TILE_STAGGER_KEY, "Tile Stagger Entrance", "Cascading tile entrance animation when loading the Home grid"},
+            {Config.ANIM_HERO_CROSSFADE_KEY, "Hero Title & Art Crossfade", "Hero title slide/fade and artwork crossfade above the dock"},
+            {Config.ANIM_AMBIENT_GLOW_KEY, "Ambient Dock Glow", "Smooth color transitions and fades on the ambient glow"},
+            {Config.ANIM_WALLPAPER_CAPTION_KEY, "Wallpaper Caption Fade", "Crossfade when wallpaper title captions change"},
+            {Config.ANIM_CLOCK_SCREENSAVER_KEY, "Clock Screensaver Entry & Drift", "Clock entry spring and minute burn-in drift fade"},
+            {Config.ANIM_ICON_EFFECTS_KEY, "Bell & Festival Icon Animations", "Bell swing, marigold turn, spooky icons, and petal/bat showers"}
+    };
     private LinearLayout advancedChoice;
     private TextView advancedSwitch;
     private LinearLayout statsRow;
@@ -88,7 +119,8 @@ public final class LauncherSettingsActivity extends Activity {
         super.onCreate(state);
         overridePendingTransition(0, 0);
         Config config = Config.load(this);
-        animateTransitions = config.animations && !config.reducedMotion;
+        animateTransitions = config.animations && !config.reducedMotion
+                && Config.isAnimEnabled(this, Config.ANIM_WINDOW_MORPH_KEY);
         setContentView(R.layout.activity_launcher_settings);
         View surface = findViewById(R.id.settingsRoot);
         View content = surface instanceof ViewGroup && ((ViewGroup) surface).getChildCount() > 0
@@ -293,6 +325,34 @@ public final class LauncherSettingsActivity extends Activity {
             animationsSwitch.setOnClickListener(animationsToggle);
         }
 
+        LinearLayout animContainer = findViewById(R.id.animTogglesContainer);
+        if (animContainer != null) {
+            animToggleRows.clear();
+            for (String[] spec : ANIM_TOGGLE_SPECS) {
+                View row = getLayoutInflater().inflate(R.layout.row_anim_toggle, animContainer, false);
+                TextView titleView = row.findViewById(R.id.animTitle);
+                TextView summaryView = row.findViewById(R.id.animSummary);
+                TextView badge = row.findViewById(R.id.animBadge);
+                titleView.setText(spec[1]);
+                summaryView.setText(spec[2]);
+                String key = spec[0];
+                View.OnClickListener listener = v -> {
+                    if (!animations) {
+                        Toast.makeText(this, R.string.animations_summary, Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    boolean current = choices.getBoolean(key, true);
+                    choices.edit().putBoolean(key, !current).apply();
+                    changed();
+                    refresh();
+                };
+                row.setOnClickListener(listener);
+                badge.setOnClickListener(listener);
+                animContainer.addView(row);
+                animToggleRows.add(new AnimToggleRow(key, row, badge));
+            }
+        }
+
         // 5. Advanced Effects Row & Switch
         advancedChoice = findViewById(R.id.advancedChoice);
         advancedSwitch = findViewById(R.id.advancedSwitch);
@@ -391,7 +451,8 @@ public final class LauncherSettingsActivity extends Activity {
         findViewById(R.id.tvSettingsChoice).setOnClickListener(v ->
                 open(SystemSettings.intent(this, Settings.ACTION_SETTINGS)));
 
-        boolean springFocus = animations && !config.reducedMotion;
+        boolean springFocus = animations && !config.reducedMotion
+                && Config.isAnimEnabled(this, Config.ANIM_BUTTON_SPRINGS_KEY);
         int[] springRows = {
                 R.id.reorderChoice, R.id.buttonMapperChoice, R.id.hiddenAppsChoice,
                 R.id.wallpaperChoice, R.id.chooseWallpaperRow,
@@ -401,7 +462,10 @@ public final class LauncherSettingsActivity extends Activity {
                 R.id.defaultHomeChoice, R.id.tvSettingsChoice
         };
         for (int id : springRows) {
-            Motion.attachSpringFocus(findViewById(id), springFocus, 1.02f);
+            Motion.attachSpringFocus(findViewById(id), springFocus, 1.018f);
+        }
+        for (AnimToggleRow item : animToggleRows) {
+            Motion.attachSpringFocus(item.row, springFocus, 1.018f);
         }
         for (TextView chip : columnChoices) Motion.attachSpringFocus(chip, springFocus, 1.06f);
         for (TextView chip : dockChoices) Motion.attachSpringFocus(chip, springFocus, 1.06f);
@@ -813,6 +877,15 @@ public final class LauncherSettingsActivity extends Activity {
         refresh();
     }
 
+    private void updateAnimSubRow(View row, TextView badge, String key) {
+        boolean on = animations && choices.getBoolean(key, true);
+        updateSwitch(badge, on);
+        if (row != null) {
+            row.setEnabled(animations);
+            row.setAlpha(animations ? 1f : 0.45f);
+        }
+    }
+
     private void updateSwitch(TextView switchView, boolean isOn) {
         if (switchView == null) return;
         if (isOn) {
@@ -874,6 +947,9 @@ public final class LauncherSettingsActivity extends Activity {
 
         // 4. Animations Switch
         updateSwitch(animationsSwitch, animations);
+        for (AnimToggleRow item : animToggleRows) {
+            updateAnimSubRow(item.row, item.badge, item.key);
+        }
 
         // 5. Advanced Effects Switch
         updateSwitch(advancedSwitch, advancedEffects);

@@ -27,16 +27,24 @@ public class ClockActivity extends Activity {
     }
 
     private ClockScene scene;
+    private boolean animateTransitions;
 
     @Override
     @SuppressWarnings("deprecation")
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         justShown = true;
-        overridePendingTransition(R.anim.screensaver_enter, R.anim.screensaver_bg_exit);
+        Config cfg = Config.load(this);
+        animateTransitions = cfg.animations && !cfg.reducedMotion
+                && Config.isAnimEnabled(this, Config.ANIM_SCREENSAVER_TRANSITION_KEY);
+        if (animateTransitions) {
+            overridePendingTransition(R.anim.screensaver_enter, R.anim.screensaver_bg_exit);
+        } else {
+            overridePendingTransition(0, 0);
+        }
         setContentView(R.layout.dream_clock);
         getWindow().setBackgroundDrawable(null);
-        ClockFormat.apply(getWindow().getDecorView(), Config.load(this).clockFormat);
+        ClockFormat.apply(getWindow().getDecorView(), cfg.clockFormat);
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN
                 | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_IMMERSIVE);
         scene = new ClockScene(getWindow().getDecorView());
@@ -80,6 +88,10 @@ public class ClockActivity extends Activity {
     @SuppressWarnings("deprecation")
     public void finish() {
         super.finish();
-        overridePendingTransition(R.anim.screensaver_bg_enter, R.anim.screensaver_exit);
+        if (animateTransitions) {
+            overridePendingTransition(R.anim.screensaver_bg_enter, R.anim.screensaver_exit);
+        } else {
+            overridePendingTransition(0, 0);
+        }
     }
 }

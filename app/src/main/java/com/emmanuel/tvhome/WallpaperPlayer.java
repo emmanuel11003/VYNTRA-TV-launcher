@@ -56,11 +56,14 @@ final class WallpaperPlayer {
     private final Map<String, Set<String>> moods;
     /** config.xml latitude and longitude for the sun's times, and today's {sunrise, sunset} once worked out. */
     private final String latitude, longitude;
+    private final boolean animations;
     private LocalDate sunDay;
     private int[] sun;
 
     WallpaperPlayer(Context context, FrameLayout root, Config config) {
         this.root = root;
+        this.animations = config.animations && !config.reducedMotion
+                && Config.isAnimEnabled(context, Config.ANIM_WALLPAPER_CAPTION_KEY);
         backgroundColor = config.backgroundColor;
         files = new ArrayList<>(config.wallpapers);
         interval = config.wallpaperRotationMinutes * 60_000L;
@@ -240,7 +243,7 @@ final class WallpaperPlayer {
             return;
         }
         caption.setContentDescription(name);
-        if (!fade || caption.getAlpha() == 0f) {
+        if (!animations || !fade || caption.getAlpha() == 0f) {
             caption.setText(name);
             caption.setAlpha(1f);
             return;

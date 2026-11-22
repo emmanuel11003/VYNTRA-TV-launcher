@@ -69,10 +69,11 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         void onOpenInput(String inputId);
         default void onAppLaunching(View card) {}
         default void onAppLaunchCancelled() {}
+        default void onOpenLauncherSettings(View card) {}
     }
 
     static final class Entry {
-        static final int APP = 0, HOME_SETTINGS = 1, CARD = 2, EMPTY = 3;
+        static final int APP = 0, HOME_SETTINGS = 1, CARD = 2, EMPTY = 3, LAUNCHER_SETTINGS = 4;
 
         final int kind;
         final String label;
@@ -224,6 +225,9 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     /** Apps pre-seeded into the App library's "added" set (config.xml library_apps); empty by default. */
     private final Set<String> libraryPreload;
     private final boolean animations;
+    private final boolean animAppTransitions;
+    private final boolean animTileFocus;
+    private final boolean animLaunchPress;
     private final boolean advancedEffects;
     private final boolean showLibrary;
     /** Packages with a leanback entry at the last reload(): their tiles launch with the leanback category. */
@@ -264,6 +268,9 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         this.hidden = new HashSet<>(cfg.hiddenApps);
         this.libraryPreload = new HashSet<>(cfg.libraryApps);
         this.animations = cfg.animations;
+        this.animAppTransitions = cfg.animations && !cfg.reducedMotion && Config.isAnimEnabled(ctx, Config.ANIM_APP_TRANSITIONS_KEY);
+        this.animTileFocus = cfg.animations && Config.isAnimEnabled(ctx, Config.ANIM_TILE_FOCUS_KEY);
+        this.animLaunchPress = cfg.animations && !cfg.reducedMotion && Config.isAnimEnabled(ctx, Config.ANIM_LAUNCH_PRESS_KEY);
         this.advancedEffects = cfg.animations && cfg.advancedEffects;
         this.showHomeSettings = cfg.showHomeSettingsShortcut;
         this.showLibrary = LibraryApps.showPill(cfg.appLibrary, cfg.libraryButton, cfg.showLibraryPill);
@@ -366,6 +373,9 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             if (ca != cb) return ca ? -1 : 1;
             return a.label.compareToIgnoreCase(b.label);
         });
+        fresh.add(new Entry(Entry.LAUNCHER_SETTINGS, ctx.getString(R.string.launcher_settings),
+                new ComponentName(ctx, LauncherSettingsActivity.class), null,
+                ctx.getDrawable(R.drawable.ic_home_settings), null, 0));
         // Retain the optional Default-home tile until dependent tile-ordering work is merged.
         if (showHomeSettings
                 && pm.resolveActivity(new Intent(Settings.ACTION_HOME_SETTINGS), 0) != null) {
@@ -572,7 +582,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             View label = v.findViewById(R.id.label);
             label.setPadding(label.getPaddingLeft(), label.getPaddingTop(), label.getPaddingRight(), Math.round(4f * density));
         }
-        return new Holder(this, v, listener, animations, advancedEffects, reducedMotion, restNameAlpha, focusOvershoot);
+        return new Holder(this, v, listener, animTileFocus, advancedEffects, reducedMotion, restNameAlpha, focusOvershoot);
     }
 
     @Override
@@ -609,9 +619,9 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         h.name.animate().cancel();
         h.name.setAlpha(focused ? 1f : restNameAlpha);
         float density = h.card.getResources().getDisplayMetrics().density;
-        h.name.setTranslationY(focused ? density * 4f : (animations && !reducedMotion ? -density * 6f : 0f));
-        h.card.setScaleX(focused && animations ? focusScale() : 1f);
-        h.card.setScaleY(focused && animations ? focusScale() : 1f);
+        h.name.setTranslationY(focused ? density * 4f : (animTileFocus && !reducedMotion ? -density * 6f : 0f));
+        h.card.setScaleX(focused && animTileFocus ? focusScale() : 1f);
+        h.card.setScaleY(focused && animTileFocus ? focusScale() : 1f);
         h.card.setTranslationY(focused && advancedEffects && !dockKind ? liftTranslationY : 0f);
         h.card.setTranslationZ(focused && advancedEffects ? liftTranslationZ : 0f);
         h.banner.setScaleX(focused && advancedEffects ? 1.035f : 1f);
@@ -652,10 +662,14 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     /** Opens the tile's activity by explicit component, with no extras: a card can name nothing else. */
     @SuppressWarnings("deprecation")
     void launch(Entry e, View v) {
+        if (e.kind == Entry.LAUNCHER_SETTINGS) {
+            listener.onOpenLauncherSettings(v);
+            return;
+        }
         if (e.kind == Entry.HOME_SETTINGS) {
             Intent settings = new Intent(ctx, HomeSettingsActivity.class)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            Bundle opts = (animations && !reducedMotion)
+            Bundle opts = animAppTransitions
                     ? ActivityOptions.makeCustomAnimation(ctx, R.anim.app_open_enter, R.anim.app_open_exit).toBundle()
                     : ActivityOptions.makeCustomAnimation(ctx, 0, 0).toBundle();
             ctx.startActivity(settings, opts);
@@ -680,13 +694,13 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             if (ctx.getPackageManager().resolveActivity(byAction, 0) != null) i = byAction;
         }
         final Intent launchIntent = i;
-        if (animations && !reducedMotion && v != null && !launchController.isLaunching()) {
+        if (animLaunchPress && v != null && !launchController.isLaunching()) {
             listener.onAppLaunching(v);
         }
-        launchController.requestLaunch(e, v, animations, reducedMotion, focusScale(), (entry, animated) -> {
+        launchController.requestLaunch(e, v, animLaunchPress, reducedMotion, focusScale(), (entry, animated) -> {
             try {
                 Bundle opts;
-                if (animated) {
+                if (animAppTransitions) {
                     opts = (v != null && v.getWidth() > 0 && v.getHeight() > 0)
                             ? ActivityOptions.makeScaleUpAnimation(v, 0, 0, v.getWidth(), v.getHeight()).toBundle()
                             : ActivityOptions.makeCustomAnimation(ctx, R.anim.app_open_enter, R.anim.app_open_exit).toBundle();
@@ -761,10 +775,15 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         return emptySlots > 0;
     }
 
-    /** Tiles that can be moved: everything but the "Default home" tile, which always stays last. */
+    /** Tiles that can be moved: everything but the trailing settings shortcuts, which always stay last. */
     int movableCount() {
         int n = items.size();
-        return n > 0 && items.get(n - 1).kind == Entry.HOME_SETTINGS ? n - 1 : n;
+        while (n > 0) {
+            int kind = items.get(n - 1).kind;
+            if (kind != Entry.HOME_SETTINGS && kind != Entry.LAUNCHER_SETTINGS) break;
+            n--;
+        }
+        return n;
     }
 
     /** Keys of the movable tiles in their current order, for Order (empty dock slots are not tiles). */
@@ -829,7 +848,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     }
 
     float focusScale() {
-        return !animations ? 1f : advancedEffects ? 1.12f : 1.10f;
+        return !animTileFocus ? 1f : advancedEffects ? 1.12f : 1.10f;
     }
 
     /** A vivid colour sampled from the app's banner (or icon), cached per entry; a card's accent when it set one. */

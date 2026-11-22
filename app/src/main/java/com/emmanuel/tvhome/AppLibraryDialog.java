@@ -230,7 +230,9 @@ final class AppLibraryDialog {
     void close() {
         dismissActions();
         if (popup.isShowing()) {
-            if (morph != null && animations && !reducedMotion && !closingWithMorph) {
+            boolean animWindowMorph = animations && !reducedMotion
+                    && Config.isAnimEnabled(activity, Config.ANIM_WINDOW_MORPH_KEY);
+            if (morph != null && animWindowMorph && !closingWithMorph) {
                 closingWithMorph = true;
                 morph.playExit(true, this::dismissNow);
             } else if (!closingWithMorph) {
@@ -276,7 +278,8 @@ final class AppLibraryDialog {
         if (!anchorRect.isEmpty()) {
             morph.setSource(anchorRect, anchorRadius);
         }
-        morph.playEnter(animations && !reducedMotion, null);
+        morph.playEnter(animations && !reducedMotion
+                && Config.isAnimEnabled(activity, Config.ANIM_WINDOW_MORPH_KEY), null);
     }
 
     /** Called by the activity's existing package receiver; an uninstall cannot leave a stale action. */
@@ -584,11 +587,12 @@ final class AppLibraryDialog {
         if (tvPackages.contains(app.activityInfo.packageName)) intent.addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
         try {
-            if (animations && !reducedMotion) {
+            if (animations && !reducedMotion && Config.isAnimEnabled(activity, Config.ANIM_APP_TRANSITIONS_KEY)) {
                 activity.startActivity(intent, android.app.ActivityOptions.makeCustomAnimation(
                         activity, R.anim.app_open_enter, R.anim.app_open_exit).toBundle());
             } else {
-                activity.startActivity(intent);
+                activity.startActivity(intent, android.app.ActivityOptions.makeCustomAnimation(
+                        activity, 0, 0).toBundle());
             }
         } catch (ActivityNotFoundException | SecurityException e) {
             Toast.makeText(activity, activity.getString(R.string.cant_open, label(app)), Toast.LENGTH_SHORT).show();
@@ -620,11 +624,12 @@ final class AppLibraryDialog {
         if (info != null) addAction(rows, R.string.library_app_info, () -> {
             closeImmediate();
             try {
-                if (animations && !reducedMotion) {
+                if (animations && !reducedMotion && Config.isAnimEnabled(activity, Config.ANIM_APP_TRANSITIONS_KEY)) {
                     activity.startActivity(info, android.app.ActivityOptions.makeCustomAnimation(
                             activity, R.anim.app_open_enter, R.anim.app_open_exit).toBundle());
                 } else {
-                    activity.startActivity(info);
+                    activity.startActivity(info, android.app.ActivityOptions.makeCustomAnimation(
+                            activity, 0, 0).toBundle());
                 }
             } catch (ActivityNotFoundException | SecurityException e) {
                 Toast.makeText(activity, activity.getString(R.string.cant_open, label(app)), Toast.LENGTH_SHORT).show();

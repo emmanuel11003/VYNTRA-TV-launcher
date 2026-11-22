@@ -48,6 +48,26 @@ final class Config {
     static final String SCREENSAVER_BG_KEY = "screensaver_bg";
     static final String DOCK_OPACITY_KEY = "dock_opacity";
     static final String CLOCK_FORMAT_KEY = "clock_format";
+    static final String ANIM_WINDOW_MORPH_KEY = "anim_window_morph";
+    static final String ANIM_APP_TRANSITIONS_KEY = "anim_app_transitions";
+    static final String ANIM_SCREENSAVER_TRANSITION_KEY = "anim_screensaver_transition";
+    static final String ANIM_BUTTON_SPRINGS_KEY = "anim_button_springs";
+    static final String ANIM_TILE_FOCUS_KEY = "anim_tile_focus";
+    static final String ANIM_LAUNCH_PRESS_KEY = "anim_launch_press";
+    static final String ANIM_GLASS_PILL_KEY = "anim_glass_pill";
+    static final String ANIM_MENU_POPUP_KEY = "anim_menu_popup";
+    static final String ANIM_HOME_ENTRANCE_KEY = "anim_home_entrance";
+    static final String ANIM_TILE_STAGGER_KEY = "anim_tile_stagger";
+    static final String ANIM_HERO_CROSSFADE_KEY = "anim_hero_crossfade";
+    static final String ANIM_AMBIENT_GLOW_KEY = "anim_ambient_glow";
+    static final String ANIM_WALLPAPER_CAPTION_KEY = "anim_wallpaper_caption";
+    static final String ANIM_CLOCK_SCREENSAVER_KEY = "anim_clock_screensaver";
+    static final String ANIM_ICON_EFFECTS_KEY = "anim_icon_effects";
+
+    static boolean isAnimEnabled(Context ctx, String key) {
+        if (ctx == null) return true;
+        return ctx.getSharedPreferences(SETTINGS_NAME, Context.MODE_PRIVATE).getBoolean(key, true);
+    }
     static final String USER_HIDDEN_APPS_KEY = "user_hidden_apps";
     static final String USER_SHOWN_APPS_KEY = "user_shown_apps";
     /**

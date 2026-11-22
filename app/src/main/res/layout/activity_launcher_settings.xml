@@ -510,6 +510,13 @@
                 android:duplicateParentState="true" />
         </LinearLayout>
 
+        <!-- Individual animation ON/OFF toggles populated in LauncherSettingsActivity -->
+        <LinearLayout
+            android:id="@+id/animTogglesContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+
         <!-- Advanced Effects Switch Row -->
         <LinearLayout
             android:id="@+id/advancedChoice"

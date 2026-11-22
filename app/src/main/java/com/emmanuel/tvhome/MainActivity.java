@@ -200,6 +200,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private SpringAnimation heroGatherSpring;
     private final android.view.animation.Interpolator scrollInterpolator = new android.view.animation.PathInterpolator(0.4f, 0f, 0.2f, 1f);
     boolean animations;
+    boolean animWindowMorph;
+    boolean animAppTransitions;
+    boolean animScreensaverTransition;
+    boolean animButtonSprings;
+    boolean animGlassPill;
+    boolean animMenuPopup;
+    boolean animHomeEntrance;
+    boolean animTileStagger;
+    boolean animHeroCrossfade;
+    boolean animAmbientGlow;
+    boolean animIconEffects;
     private boolean advancedEffects;
     private TextView greeting;
     private View clockBlock;
@@ -517,6 +528,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         settingsKeyPanel = cfg.settingsKeyPanel;
         COLUMNS = cfg.columns;
         animations = cfg.animations;
+        boolean baseAnim = animations && !cfg.reducedMotion;
+        animWindowMorph = baseAnim && Config.isAnimEnabled(this, Config.ANIM_WINDOW_MORPH_KEY);
+        animAppTransitions = baseAnim && Config.isAnimEnabled(this, Config.ANIM_APP_TRANSITIONS_KEY);
+        animScreensaverTransition = baseAnim && Config.isAnimEnabled(this, Config.ANIM_SCREENSAVER_TRANSITION_KEY);
+        animButtonSprings = baseAnim && Config.isAnimEnabled(this, Config.ANIM_BUTTON_SPRINGS_KEY);
+        animGlassPill = animations && Config.isAnimEnabled(this, Config.ANIM_GLASS_PILL_KEY);
+        animMenuPopup = animations && Config.isAnimEnabled(this, Config.ANIM_MENU_POPUP_KEY);
+        animHomeEntrance = baseAnim && Config.isAnimEnabled(this, Config.ANIM_HOME_ENTRANCE_KEY);
+        animTileStagger = baseAnim && Config.isAnimEnabled(this, Config.ANIM_TILE_STAGGER_KEY);
+        animHeroCrossfade = baseAnim && Config.isAnimEnabled(this, Config.ANIM_HERO_CROSSFADE_KEY);
+        animAmbientGlow = baseAnim && Config.isAnimEnabled(this, Config.ANIM_AMBIENT_GLOW_KEY);
+        animIconEffects = baseAnim && Config.isAnimEnabled(this, Config.ANIM_ICON_EFFECTS_KEY);
         advancedEffects = cfg.animations && cfg.advancedEffects;
         reducedMotion = cfg.reducedMotion;
         dockRow = cfg.dockRow;
@@ -745,7 +768,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         if (cfg.fadeRows) TopFade.attach(grid, 48 * density);
         // Reduced motion: the tiles are simply there, with no entrance (reloadApps skips it there too).
-        if (animations && !reducedMotion) {
+        if (animTileStagger) {
             grid.setLayoutAnimation(new LayoutAnimationController(
                     AnimationUtils.loadAnimation(this, R.anim.tile_enter), 0.06f));
         }
@@ -986,7 +1009,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         btnReorder.setOnKeyListener(pillKeys);
         btnLibraryTop.setOnKeyListener(pillKeys);
         for (View button : topAppButtons) button.setOnKeyListener(pillKeys);
-        if (advancedEffects) {
+        if (advancedEffects && animButtonSprings) {
             List<View> pills = new ArrayList<>(Arrays.asList(btnInputs, btnWifi, btnVpn, btnReorder, btnLibraryTop, btnSettings));
             pills.addAll(topAppButtons);
             for (View button : pills) {
@@ -1919,7 +1942,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @SuppressWarnings("deprecation")
     private void openScreensaver() {
         startActivity(new Intent(this, ClockActivity.class));
-        if (animations && !reducedMotion) {
+        if (animScreensaverTransition) {
             overridePendingTransition(R.anim.screensaver_enter, R.anim.screensaver_bg_exit);
         } else {
             overridePendingTransition(0, 0);
@@ -1931,7 +1954,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      * Animates only GPU-accelerated properties (translationY, scaleX/Y, alpha) with hardware layers.
      */
     private void playGatherTransition(boolean quick) {
-        if (!animations || reducedMotion || isFinishing() || isDestroyed()) return;
+        if (!animHomeEntrance || isFinishing() || isDestroyed()) return;
         float d = getResources().getDisplayMetrics().density;
         float stiffness = quick ? 340f : 270f;
         float damping = quick ? 0.80f : 0.74f;
@@ -2103,10 +2126,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             springY.cancel();
             glass.setTranslationX(x);
             glass.setTranslationY(y);
-            if (animations && !reducedMotion) glass.animate().alpha(1f).setDuration(180).start();
+            if (animGlassPill && !reducedMotion) glass.animate().alpha(1f).setDuration(180).start();
             else glass.setAlpha(1f);
             glassShown = true;
-        } else if (!animations) {
+        } else if (!animGlassPill) {
             springX.cancel();
             springY.cancel();
             glass.setTranslationX(x);
@@ -2176,9 +2199,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         boolean changed = !label.contentEquals(heroName.getText());
         if (cinematic && heroArtAlpha > 0f) showHeroArt(position);
 
-        if (!animations || reducedMotion) {
-            // Snap the shelf instead of sliding and fading it: each of those frames repaints the
-            // full-screen panel, and this switch exists for the GPUs that cannot afford it.
+        if (!animHeroCrossfade && !animAmbientGlow) {
             if (heroGatherSpring != null) heroGatherSpring.cancel();
             hero.animate().cancel();
             ambient.animate().cancel();
@@ -2200,11 +2221,19 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             hero.animate().cancel();
             ambient.animate().cancel();
             fillHero(position, label);
-            hero.setY(y + 16 * density);
             hero.setTranslationX(0f);
-            hero.animate().y(y).alpha(1f).setDuration(300).setInterpolator(scrollInterpolator).start();
+            if (animHeroCrossfade) {
+                hero.setY(y + 16 * density);
+                hero.animate().y(y).alpha(1f).setDuration(300).setInterpolator(scrollInterpolator).start();
+            } else {
+                hero.setY(y);
+                hero.setAlpha(1f);
+            }
             if (ambientGlow) {
-                if (advancedEffects && ambientColor != -1 && ambient.getBackground() != null) {
+                if (!animAmbientGlow) {
+                    setAmbient(color);
+                    ambient.setAlpha(1f);
+                } else if (advancedEffects && ambientColor != -1 && ambient.getBackground() != null) {
                     transitionAmbient(color);
                 } else {
                     setAmbient(color);
@@ -2213,14 +2242,26 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
             heroShown = true;
         } else if (changed) {
-            if (advancedEffects) hero.animate().cancel();
-            hero.animate().alpha(0f).translationX(-12 * density).setDuration(120).withEndAction(() -> {
+            if (animHeroCrossfade) {
+                if (advancedEffects) hero.animate().cancel();
+                hero.animate().alpha(0f).translationX(-12 * density).setDuration(120).withEndAction(() -> {
+                    fillHero(position, label);
+                    hero.setY(y);
+                    hero.setTranslationX(12 * density);
+                    hero.animate().alpha(1f).translationX(0f).setDuration(200).start();
+                }).start();
+            } else {
+                hero.animate().cancel();
                 fillHero(position, label);
                 hero.setY(y);
-                hero.setTranslationX(12 * density);
-                hero.animate().alpha(1f).translationX(0f).setDuration(200).start();
-            }).start();
-            if (ambientGlow && advancedEffects) {
+                hero.setTranslationX(0f);
+                hero.setAlpha(1f);
+            }
+            if (ambientGlow && !animAmbientGlow) {
+                ambient.animate().cancel();
+                setAmbient(color);
+                ambient.setAlpha(1f);
+            } else if (ambientGlow && advancedEffects) {
                 transitionAmbient(color);
             } else if (ambientGlow && color != ambientColor && glowSnap) {
                 ambient.animate().cancel();
@@ -2236,9 +2277,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             hero.setY(y);
             // onPause cancels the fade-ins, and a second Home during one lands on the same tile, which starts none:
             // finish them, or the shelf and the glow stay dim until focus moves to another app.
-            if (hero.getAlpha() < 1f) hero.animate().alpha(1f).setDuration(260).start();
+            if (hero.getAlpha() < 1f) {
+                if (animHeroCrossfade) hero.animate().alpha(1f).setDuration(260).start();
+                else hero.setAlpha(1f);
+            }
             if (ambientGlow && color == ambientColor && ambient.getAlpha() < 1f) {
-                ambient.animate().alpha(1f).setDuration(600).start();
+                if (animAmbientGlow) ambient.animate().alpha(1f).setDuration(600).start();
+                else ambient.setAlpha(1f);
             }
         }
     }
@@ -2334,7 +2379,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private void applyHeroArt(final Bitmap next) {
-        if (!animations || reducedMotion || heroArt.getAlpha() == 0f) {
+        if (!animHeroCrossfade || heroArt.getAlpha() == 0f) {
             heroArt.setImageBitmap(next != null && !next.isRecycled() ? next : null);
             fadeHeroArt(600);
             return;
@@ -2348,7 +2393,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private void fadeHeroArt(int ms) {
-        if (!animations) heroArt.setAlpha(heroArtAlpha);
+        if (!animHeroCrossfade) heroArt.setAlpha(heroArtAlpha);
         else heroArt.animate().alpha(heroArtAlpha).setDuration(reducedMotion ? Math.min(ms, Motion.REDUCED_MS) : ms).start();
     }
 
@@ -2525,7 +2570,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             heroArt.setAlpha(0f);
         }
         if (!ambientGlow) return;
-        if (!animations || reducedMotion) {
+        if (!animAmbientGlow) {
             stopAmbientAnimation();
             ambient.animate().cancel();
             setAmbient(color);
@@ -2560,14 +2605,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         ambient.animate().cancel();
         heroArt.animate().cancel();
         heroShown = false;
-        if (animations && !reducedMotion) {
+        if (animHeroCrossfade) {
             hero.animate().alpha(0f).setDuration(160).start();
-            if (ambientGlow) ambient.animate().alpha(0f).setDuration(300).start();
             heroArt.animate().alpha(0f).setDuration(300).start();
         } else {
             hero.setAlpha(0f);
-            ambient.setAlpha(0f);
             heroArt.setAlpha(0f);
+        }
+        if (animAmbientGlow) {
+            if (ambientGlow) ambient.animate().alpha(0f).setDuration(300).start();
+        } else {
+            ambient.setAlpha(0f);
         }
     }
 
@@ -2575,7 +2623,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (!glassShown) return;
         glassShown = false;
         glass.animate().cancel();
-        if (animations && !reducedMotion) glass.animate().alpha(0f).setDuration(160).start();
+        if (animGlassPill && !reducedMotion) glass.animate().alpha(0f).setDuration(160).start();
         else glass.setAlpha(0f);
     }
 
@@ -3419,9 +3467,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             SpookyIconDrawable bat = new SpookyIconDrawable(getResources(), density, SpookyIconDrawable.BAT);
             SpookyIconDrawable ghost = new SpookyIconDrawable(getResources(), density, SpookyIconDrawable.GHOST);
             JackOLanternDrawable pumpkin = new JackOLanternDrawable(getResources(), density);
-            bat.setReducedMotion(reducedMotion);
-            ghost.setReducedMotion(reducedMotion);
-            pumpkin.setReducedMotion(reducedMotion);
+            bat.setReducedMotion(reducedMotion || !animIconEffects);
+            ghost.setReducedMotion(reducedMotion || !animIconEffects);
+            pumpkin.setReducedMotion(reducedMotion || !animIconEffects);
             lamp = pumpkin;
             setFestiveIcon(inputs, bat);
             setFestiveIcon(btnWifi, pumpkin);
@@ -3433,9 +3481,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         bell = new BellDrawable(density);
         marigold = new MarigoldDrawable(density);
         DiyaDrawable diya = new DiyaDrawable(density);
-        bell.setReducedMotion(reducedMotion);
-        marigold.setReducedMotion(reducedMotion);
-        diya.setReducedMotion(reducedMotion);
+        bell.setReducedMotion(reducedMotion || !animIconEffects);
+        marigold.setReducedMotion(reducedMotion || !animIconEffects);
+        diya.setReducedMotion(reducedMotion || !animIconEffects);
         lamp = diya;
         setFestiveIcon(inputs, bell);
         setFestiveIcon(btnWifi, diya);
@@ -3460,7 +3508,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private void playPetalShower() {
-        if (!resumed || isFinishing() || isDestroyed()) return;
+        if (!resumed || !animIconEffects || isFinishing() || isDestroyed()) return;
         if (festival.isHalloween()) {
             BatFlightView bats = new BatFlightView(this);
             root.addView(bats, new FrameLayout.LayoutParams(
@@ -3558,7 +3606,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     void open(Intent i) {
         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         try {
-            ActivityOptions opts = (animations && !reducedMotion)
+            ActivityOptions opts = animAppTransitions
                     ? ActivityOptions.makeCustomAnimation(this, R.anim.app_open_enter, R.anim.app_open_exit)
                     : ActivityOptions.makeCustomAnimation(this, 0, 0);
             startActivity(i, opts.toBundle());
@@ -3568,7 +3616,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     void openOwnedActivity(Intent intent, View anchor, int requestCode) {
-        if (anchor != null && anchor.isAttachedToWindow()) {
+        if (animWindowMorph && anchor != null && anchor.isAttachedToWindow()) {
             float radius = Math.min(anchor.getWidth(), anchor.getHeight()) * 0.5f;
             WindowMorph.putSource(intent, anchor, radius);
         }
@@ -3687,6 +3735,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     @Override
+    public void onOpenLauncherSettings(View card) {
+        openOwnedActivity(new Intent(this, LauncherSettingsActivity.class), card, LAUNCHER_SETTINGS_REQUEST);
+    }
+
+    @Override
     public void onTileLongPress(int position, View card) {
         if (reordering || openPopup != null || card == null) return;
         String key = adapter.keyAt(position);
@@ -3739,8 +3792,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         card.getLocationInWindow(at);
         int gap = (int) (10 * density), height = panel.getMeasuredHeight();
         if (at[1] + card.getHeight() + gap + height <= root.getHeight()) {
-            HomeMenus.dropIn(popup, panel, card, Gravity.START, density, animations, reducedMotion);
-        } else if (!animations) {
+            HomeMenus.dropIn(popup, panel, card, Gravity.START, density, animMenuPopup, reducedMotion);
+        } else if (!animMenuPopup) {
             popup.showAtLocation(root, Gravity.NO_GRAVITY, at[0], Math.max(0, at[1] - gap - height));
         } else {
             panel.setAlpha(0f);

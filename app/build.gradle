@@ -13,8 +13,8 @@ android {
         applicationId providers.gradleProperty('launcherApplicationId').getOrElse('com.emmanuel.tvhome')
         minSdk 26
         targetSdk 34
-        versionCode 70
-        versionName '7.0'
+        versionCode 72
+        versionName '7.2'
         resourceConfigurations += [
                 'en', 'nb', 'de', 'ca', 'es', 'b+es+419', 'fr', 'ru', 'zh-rCN', 'zh-rTW',
                 'th', 'b+sr+Latn', 'pl', 'ar', 'iw', 'tr', 'pt', 'pt-rPT', 'fi', 'vi',

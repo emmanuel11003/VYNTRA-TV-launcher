@@ -60,6 +60,15 @@ final class ClockScene {
         public void run() {
             if (!started) return;
             placeClock();
+            Config cfg = Config.load(content.getContext());
+            if (!cfg.animations || cfg.reducedMotion
+                    || !Config.isAnimEnabled(content.getContext(), Config.ANIM_CLOCK_SCREENSAVER_KEY)) {
+                content.setScaleX(1f);
+                content.setScaleY(1f);
+                content.setTranslationY(0f);
+                content.setAlpha(1f);
+                return;
+            }
             float density = content.getResources().getDisplayMetrics().density;
             content.setLayerType(View.LAYER_TYPE_HARDWARE, null);
             content.setScaleX(0.94f);
@@ -367,6 +376,13 @@ final class ClockScene {
     }
 
     private void moveClock() {
+        Config cfg = Config.load(content.getContext());
+        if (!cfg.animations || cfg.reducedMotion
+                || !Config.isAnimEnabled(content.getContext(), Config.ANIM_CLOCK_SCREENSAVER_KEY)) {
+            placeClock();
+            content.setAlpha(1f);
+            return;
+        }
         content.animate().alpha(0f).setDuration(900).withEndAction(() -> {
             placeClock();
             content.animate().alpha(1f).setDuration(1200).start();

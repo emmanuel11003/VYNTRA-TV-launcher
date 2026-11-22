@@ -423,7 +423,8 @@ public class HomeKeyService extends AccessibilityService {
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
         try {
             Config cfg = Config.load(this);
-            Bundle opts = (cfg.animations && !cfg.reducedMotion)
+            Bundle opts = (cfg.animations && !cfg.reducedMotion
+                    && Config.isAnimEnabled(this, Config.ANIM_APP_TRANSITIONS_KEY))
                     ? ActivityOptions.makeCustomAnimation(this, R.anim.app_close_enter, R.anim.app_close_exit).toBundle()
                     : ActivityOptions.makeCustomAnimation(this, 0, 0).toBundle();
             startActivity(open, opts);

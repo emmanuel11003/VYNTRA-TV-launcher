@@ -83,7 +83,7 @@
     <string name="network_pill_label" translatable="false">Network Pill</string>
     <string name="network_pill_summary" translatable="false">Wi-Fi and Ethernet status button in top bar</string>
     <string name="animations" translatable="false">Animations</string>
-    <string name="animations_summary" translatable="false">Dynamic spring motion physics</string>
+    <string name="animations_summary" translatable="false">Turn all launcher animations on or off</string>
     <string name="advanced_effects_summary" translatable="false">Tile lift, icon zoom, and smooth transitions</string>
     <string name="switch_on_badge" translatable="false">ON</string>
     <string name="switch_off_badge" translatable="false">OFF</string>

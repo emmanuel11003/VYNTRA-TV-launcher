@@ -421,7 +421,7 @@ final class RemoteKeys {
     private static Bundle openOpts(Context ctx) {
         try {
             Config cfg = cachedConfig(ctx);
-            if (cfg.animations && !cfg.reducedMotion) {
+            if (cfg.animations && !cfg.reducedMotion && Config.isAnimEnabled(ctx, Config.ANIM_APP_TRANSITIONS_KEY)) {
                 return ActivityOptions.makeCustomAnimation(ctx, R.anim.app_open_enter, R.anim.app_open_exit).toBundle();
             }
             return ActivityOptions.makeCustomAnimation(ctx, 0, 0).toBundle();

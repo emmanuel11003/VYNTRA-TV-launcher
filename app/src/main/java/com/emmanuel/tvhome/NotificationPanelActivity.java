@@ -64,7 +64,8 @@ public final class NotificationPanelActivity extends Activity implements GuardRe
         super.onCreate(state);
         overridePendingTransition(0, 0);
         Config cfg = Config.load(this);
-        animateTransitions = cfg.animations && !cfg.reducedMotion;
+        animateTransitions = cfg.animations && !cfg.reducedMotion
+                && Config.isAnimEnabled(this, Config.ANIM_WINDOW_MORPH_KEY);
         density = getResources().getDisplayMetrics().density;
         pm = getPackageManager();
 
@@ -170,7 +171,10 @@ public final class NotificationPanelActivity extends Activity implements GuardRe
         clearAllBtn.setFocusable(true);
         clearAllBtn.setClickable(true);
         clearAllBtn.setVisibility(View.GONE);
-        Motion.attachSpringFocus(clearAllBtn, animateTransitions, 1.045f);
+        Config cfg = Config.load(this);
+        boolean springFocus = cfg.animations && !cfg.reducedMotion
+                && Config.isAnimEnabled(this, Config.ANIM_BUTTON_SPRINGS_KEY);
+        Motion.attachSpringFocus(clearAllBtn, springFocus, 1.045f);
         clearAllBtn.setOnClickListener(v -> {
             GuardRevival.dismissAll();
             closeWithMorph();
@@ -429,7 +433,9 @@ public final class NotificationPanelActivity extends Activity implements GuardRe
         row.setPadding(dp(12), dp(10), dp(12), dp(10));
         row.setFocusable(true);
         row.setClickable(true);
-        Motion.attachSpringFocus(row, animateTransitions, 1.03f);
+        boolean springFocus = Config.load(this).animations && !Config.load(this).reducedMotion
+                && Config.isAnimEnabled(this, Config.ANIM_BUTTON_SPRINGS_KEY);
+        Motion.attachSpringFocus(row, springFocus, 1.03f);
 
         ImageView iconView = new ImageView(this);
         LinearLayout.LayoutParams iconLp = new LinearLayout.LayoutParams(dp(28), dp(28));
