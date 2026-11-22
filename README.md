@@ -1,6 +1,6 @@
-# VYNTRA TV Launcher (`com.emmanuel.tvhome` v7.0)
+# VYNTRA TV Launcher (`com.emmanuel.tvhome` v7.2)
 
-A standalone, 100% offline Android TV / Google TV launcher (`minSdk 26`, `targetSdk 34`, `versionCode 70`, `versionName 7.0`, **zero `INTERNET` permission**) unifying a tvOS-inspired glass Home screen, built-in Quick Settings with Sleep Timer, built-in Notification Center, standalone Home & Screensaver Wallpaper Manager, interactive Remote Button Mapper, and self-healing key services — tuned specifically for **Haier MatrixTV DE 55"** (`HR9676EUF`, MediaTek Cortex-A55 / Mali).
+A standalone, 100% offline Android TV / Google TV launcher (`minSdk 26`, `targetSdk 34`, `versionCode 72`, `versionName 7.2`, **zero `INTERNET` permission**) unifying a tvOS-inspired glass Home screen, built-in Quick Settings with Sleep Timer, built-in Notification Center, standalone Home & Screensaver Wallpaper Manager, interactive Remote Button Mapper, and self-healing key services — tuned specifically for **Haier MatrixTV DE 55"** (`HR9676EUF`, MediaTek Cortex-A55 / Mali).
 
 ---
 
@@ -117,7 +117,7 @@ A standalone, 100% offline Android TV / Google TV launcher (`minSdk 26`, `target
 - **Async `HeroArt` & Sliding-Window Blur** (`HeroArt`, `MainActivity`): Offloaded `HeroArt.from(...)` to `LauncherExecutors.io()`, reused static `PX`/`TEMP` scratch buffers, and replaced the `O(span)` inner blur loop with an `O(1)` sliding window.
 - **240×135 Ambient & Scrim Bitmaps** (`MainActivity`): Reduced `scrimDrawable()` and `setAmbient()` bitmaps by 75% with `setFilterBitmap(true)`, skipped redundant tint invalidations via `lastAmbientTint`.
 - **APK Size & Wallpaper Sync Add-on Optimization**:
-  - Restored trimmed `83,876`-byte `outfit.ttf`, R8 obfuscation/shrinking (`Log.d`/`Log.i` stripped), `aapt2 optimize --collapse-resource-names --deduplicate-entry-values`, Zopfli recompression, and v2-only APK signing on **both** `tvhome-v7.0-release.apk` and `wallpapersync-v1.0-release.apk`.
+  - Restored trimmed `83,876`-byte `outfit.ttf`, R8 obfuscation/shrinking (`Log.d`/`Log.i` stripped), `aapt2 optimize --collapse-resource-names --deduplicate-entry-values`, Zopfli recompression, and v2-only APK signing on **both** `tvhome-v7.2-release.apk` and `wallpapersync-v1.0-release.apk`.
   - Hardened `Wallpaper Sync` (`addons/wallpaper-sync`) with a bounded `ThreadPoolExecutor` (`0..4` daemon workers), `SO_REUSEADDR` port `8765` reuse, cached `WebUi` UTF-8 bytes & HTTP line buffer, constant-time `MessageDigest.isEqual` PIN check, `stopSelf()` bind-failure safety, pre-parsed color constants, zero window overdraw, and single-`Path` coalesced `QrView` rendering (`38,840` B → **`37,236` B**).
 
 ### Observed Benchmark (`emulator-5554`, `cmd package compile -m speed -f com.emmanuel.tvhome`)
@@ -160,7 +160,7 @@ A standalone, 100% offline Android TV / Google TV launcher (`minSdk 26`, `target
 .\gradlew.bat --no-daemon testReleaseUnitTest lintRelease assembleRelease
 ```
 
-Release APK output: `app\build\outputs\apk\release\tvhome-v7.0-release.apk`
+Release APK output: `app\build\outputs\apk\release\tvhome-v7.2-release.apk`
 
 ### Install to TV over ADB
 
@@ -203,9 +203,18 @@ VYNTRA-TV-launcher/
 ├── docs/screenshots/             # Live screenshots (home, quick-settings, notifications, settings, screensaver, tile-menu, wallpaper-sync)
 ├── build-and-install.ps1         # Windows ADB installer (defaults helpers & permissions ON)
 ├── build-and-install.sh          # POSIX ADB installer (defaults helpers & permissions ON)
-├── FONT-LICENSE-OFL.txt          # Outfit font license
+├── LICENSE                       # MIT License
+├── FONT-LICENSE-OFL.txt          # Outfit font license (SIL OFL 1.1)
 └── ICONS-LICENSE-FLUENT-EMOJI.txt
 ```
+
+---
+
+## License
+
+Released under the [MIT License](LICENSE). Bundled third-party assets retain their respective licenses:
+- **Outfit typeface:** SIL Open Font License 1.1 ([`FONT-LICENSE-OFL.txt`](FONT-LICENSE-OFL.txt))
+- **Fluent Emoji icons:** MIT License ([`ICONS-LICENSE-FLUENT-EMOJI.txt`](ICONS-LICENSE-FLUENT-EMOJI.txt))
 
 ---
 
