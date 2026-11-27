@@ -67,7 +67,13 @@ Open **Launcher Settings → Wallpaper → Sync from Phone** and scan the QR cod
 | --- | --- |
 | ![Quick Settings panel and sleep timer](docs/screenshots/quick-settings.png) | ![Notification Center beside the home screen](docs/screenshots/notifications.png) |
 
-[Button Mapper](docs/screenshots/launcher-settings.png) · [Clock and calendar](docs/screenshots/screensaver.png) · [App tile menu](docs/screenshots/tile-menu.png) · [Wallpaper Sync](docs/screenshots/wallpaper-sync.png)
+| Launcher settings | Clock and calendar |
+| --- | --- |
+| ![Button Mapper and dock layout controls](docs/screenshots/launcher-settings.png) | ![Idle screen with a clock and monthly calendar](docs/screenshots/screensaver.png) |
+
+| App tile menu | Wallpaper Sync |
+| --- | --- |
+| ![Actions for the selected app tile](docs/screenshots/tile-menu.png) | ![Phone pairing screen with the QR code obscured](docs/screenshots/wallpaper-sync.png) |
 
 ## Performance
 
